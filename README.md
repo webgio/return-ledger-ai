@@ -49,7 +49,7 @@ Test: `pip install pytest && pytest` (dal root). Quelli su Table Storage partono
 
 ## Dal frontend
 
-In `app/index.html` è già integrato: bottone "Import from PDF" nella card del registro, campo
+In `app/index.html` è già integrato: bottone "Add transaction from PDF" nella card del registro, campo
 codice (salvato in localStorage solo se l'utente lo lascia spuntato, e lo dice), avviso privacy,
 anteprima modificabile della riga con errori in rosso e avvisi in ambra; con `needs_review`
 il bottone "Add to this ledger" resta disattivato finché l'utente non spunta "I checked these

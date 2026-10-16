@@ -360,12 +360,12 @@
           <button type="button" id="btn-export">&#8595; Download CSV</button>
           <button type="button" id="btn-import" title="Replaces the rows of this ledger only">&#8593; Import CSV</button>
           <input type="file" id="file-import" accept=".csv,text/csv" hidden>
-          <button type="button" id="btn-pdf" title="An AI model reads a trade confirmation and proposes one row">&#8593; Import from PDF</button>
+          <button type="button" id="btn-pdf" title="An AI model reads a trade confirmation or statement and proposes one row; nothing is saved until you confirm">&#43; Add transaction from PDF</button>
           <span class="hint" id="io-status" style="align-self:center;"></span>
         </div>
         <div class="ai-panel" id="ai-panel" hidden>
           <div class="ai-head">
-            <b>Import from a PDF</b>
+            <b>Add a transaction from a PDF</b>
             <span class="badge">AI &middot; beta</span>
             <button type="button" class="small ghost ai-close" id="ai-close" aria-label="Close">&#10005;</button>
           </div>
