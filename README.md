@@ -23,7 +23,7 @@ costo per l'investitore: un credito d'imposta (es. imposta sul rateo pagato comp
     api/core/gate.py       chi chiama (codice ospite; login SWA pronto ma spento) + quote
     api/core/store.py      MemoryStore (test) / TableStore (Azure Table Storage)
     api/function_app.py    handler HTTP, sottile; la logica sta in core/ e non dipende da Azure
-    scripts/guests_admin.py  add / list / revoke / enable / quota / reset ospiti
+    scripts/guests_admin.py  add / list / revoke / enable / quota / reset / rotate ospiti
     app/staticwebapp.config.json  runtime API (python:3.11), header di sicurezza
 
 ## Provarlo in locale
@@ -96,11 +96,13 @@ Codici in `warnings`: `invalid_isin`, `quantity_price_mismatch`, `position_value
 
 ## Ospiti e crediti
 
-    export AZURE_TABLES_CONNECTION_STRING="..."    # in locale: UseDevelopmentStorage=true (Azurite)
+    # stringa di connessione: dal portachiavi macOS (servizio return-ledger-tables) se non c'è
+    # la variabile; per Azurite: export AZURE_TABLES_CONNECTION_STRING="UseDevelopmentStorage=true"
     python scripts/guests_admin.py add mario --quota 20   # stampa il codice, una volta sola
     python scripts/guests_admin.py list                   # consumo del mese per ospite
     python scripts/guests_admin.py quota mario 50         # nuova quota mensile, vale da subito
     python scripts/guests_admin.py reset mario            # azzera il consumo di questo mese
+    python scripts/guests_admin.py rotate mario           # nuovo codice, il vecchio non vale più
     python scripts/guests_admin.py revoke mario           # (enable per riattivare)
 
 La quota è mensile e si azzera da sola il primo del mese (UTC). Il codice non si può rileggere

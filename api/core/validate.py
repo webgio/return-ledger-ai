@@ -19,7 +19,22 @@ from .models import ExtractedStatement, ExtractedTrade, LineItem
 
 CENT = Decimal("0.01")
 ISIN_RE = re.compile(r"^[A-Z]{2}[A-Z0-9]{9}[0-9]$")
+NATIONAL_CODE_RE = re.compile(r"^[A-Z0-9]{6,10}$")  # CUSIP (9), SEDOL (7), ...
 NUMBER_TOKEN_RE = re.compile(r"\d[\d.,]*\d|\d")
+
+
+MAX_NOTES = 3
+MAX_NOTE_CHARS = 120
+
+
+def model_notes(warnings: list[str]) -> list[Issue]:
+    """Free text from the model is the one place personal data from the PDF could leak back
+    out, so cap how much of it reaches the client."""
+    notes = [" ".join(w.split()) for w in warnings]
+    return [
+        Issue("model_note", n if len(n) <= MAX_NOTE_CHARS else n[: MAX_NOTE_CHARS - 1] + "…")
+        for n in notes[:MAX_NOTES] if n
+    ]
 
 
 def q2(x: Decimal) -> Decimal:
@@ -131,7 +146,7 @@ def check(t: ExtractedTrade, pdf_text: str | None = None) -> Validation:
             and t.settlement_date < t.trade_date):
         v.errors.append(Issue("settlement_before_trade",
                               "The settlement date is before the trade date."))
-    if t.isin and not ISIN_RE.match(t.isin):
+    if t.isin and not ISIN_RE.match(t.isin) and not (len(t.isin) != 12 and NATIONAL_CODE_RE.match(t.isin)):
         v.warnings.append(Issue("invalid_isin", f"ISIN '{t.isin}' is not well formed."))
     if t.quantity is not None and t.unit_price is not None:
         by_unit = t.quantity * t.unit_price
@@ -147,7 +162,7 @@ def check(t: ExtractedTrade, pdf_text: str | None = None) -> Validation:
             "non_eur_currency",
             f"Currency {t.currency}: the ledger does not convert currencies, check the amount.",
         ))
-    v.warnings.extend(Issue("model_note", w) for w in t.warnings)
+    v.warnings.extend(model_notes(t.warnings))
 
     # 3. grounding
     figures = {"principal": t.principal_amount, "net amount": t.stated_net_amount}
@@ -210,7 +225,7 @@ def check_statement(s: ExtractedStatement, pdf_text: str | None = None) -> Valid
             "non_eur_currency",
             f"Currency {s.currency}: the ledger does not convert currencies, check the values.",
         ))
-    v.warnings.extend(Issue("model_note", w) for w in s.warnings)
+    v.warnings.extend(model_notes(s.warnings))
 
     # 3. grounding
     figures = {"statement total": s.stated_total}

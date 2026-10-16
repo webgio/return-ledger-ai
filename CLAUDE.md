@@ -72,6 +72,9 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
   Keychain tip: `security ... -w` prompts cap input at 128 chars; use `-w "$(pbpaste)"` instead.
 - The Azure CLI here only sees the Pay-As-You-Go tenant; the Rotativa subscription needs
   `az login --tenant ...` before any `az` command against it.
+- Number format (2026-10-16): the prompt now asks the model to detect Italian vs English
+  separators from the whole document. A synthetic US-style notice (USD, 1,234.56, MM/DD dates)
+  was exact on the first attempt (Haiku 5.5); still no real non-MPS documents.
 - NOT verified: brokers other than MPS.
 - Frontend integration done (2026-10-10) in `app/index.html` (section "AI import" at the end of
   the script): verified end to end in headless Chrome against `scripts/dev_server.py` with the

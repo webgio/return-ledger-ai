@@ -72,6 +72,14 @@ def test_model_warnings_are_passed_through_as_notes():
     assert notes == ["Value date is hard to read."]
 
 
+def test_model_notes_are_capped():
+    long = "Mario Rossi, Via Roma 1, conto 000123456789 " * 10
+    t = ExtractedTrade.model_validate({**MPS_SALE, "warnings": [long, "a", "b", "c", "d"]})
+    notes = [i.message for i in check(t).warnings if i.code == "model_note"]
+    assert len(notes) == 3
+    assert len(notes[0]) == 120 and notes[0].endswith("…")
+
+
 def test_tool_schema_has_plain_numbers_and_required_fields():
     s = tool_schema()
     props = s["properties"]
@@ -182,3 +190,41 @@ def test_statement_total_and_position_mismatches():
     v = check_statement(ExtractedStatement.model_validate(bad))
     assert [e.code for e in v.errors] == ["statement_total_mismatch"]
     assert "position_value_mismatch" in [w.code for w in v.warnings]
+
+
+ENGLISH_NOTICE = """TRADE CONFIRMATION
+Sold 1,000 shares ACME at USD 1,234.567
+Gross amount 1,234,567.00
+Commission 12.50
+Net amount 1,234,554.50
+Settlement date 2025-08-07
+""" + "Standard terms and conditions apply to this confirmation. " * 4
+
+
+def test_english_format_figures_are_grounded():
+    sale = ExtractedTrade.model_validate({
+        "operation": "sell", "principal_amount": 1234567.00,
+        "fee_items": [{"label": "Commission", "amount": 12.50}],
+        "stated_net_amount": 1234554.50, "settlement_date": "2025-08-07",
+    })
+    v = check(sale, ENGLISH_NOTICE)
+    assert v.errors == []
+
+
+def test_misread_english_decimal_is_caught():
+    # 1,234,567.00 read with a shifted separator (123456.70) is not in the document.
+    wrong = ExtractedTrade.model_validate({
+        "operation": "sell", "principal_amount": 123456.70,
+        "stated_net_amount": 123456.70, "settlement_date": "2025-08-07",
+    })
+    errs = check(wrong, ENGLISH_NOTICE).errors
+    assert any(e.code == "figure_not_in_document" for e in errs)
+
+
+def test_cusip_is_accepted_but_malformed_isin_still_warns():
+    base = {"operation": "buy", "principal_amount": 100, "stated_net_amount": 100,
+            "settlement_date": "2025-08-07"}
+    codes = lambda isin: [w.code for w in check(ExtractedTrade.model_validate({**base, "isin": isin})).warnings]
+    assert "invalid_isin" not in codes("037833100")
+    assert "invalid_isin" in codes("IT000543800")  # 11 chars
+    assert "invalid_isin" in codes("IT000543800X")  # 12 chars, bad check digit shape

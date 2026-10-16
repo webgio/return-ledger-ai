@@ -122,3 +122,13 @@ def test_reset_gives_the_month_back(store):
     gate.reserve(s, store, NOW); gate.reserve(s, store, NOW)
     store.reset_count("guest:mario", "2026-10")
     assert gate.reserve(s, store, NOW) == 1
+
+
+def test_rotate_replaces_the_code_and_keeps_label_quota_and_usage(store):
+    s = auth(store, "secret-code")
+    gate.reserve(s, store, NOW)
+    assert store.rotate_guest("mario", gate.hash_code("new-code"))
+    with pytest.raises(gate.GateError):
+        auth(store, "secret-code")
+    assert gate.reserve(auth(store, "new-code"), store, NOW) == 0  # 2nd of 2: usage kept
+    assert not store.rotate_guest("nobody", gate.hash_code("x"))

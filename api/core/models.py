@@ -47,7 +47,10 @@ class ExtractedTrade(BaseModel):
         "refers to a separate summary note of the same order",
     )
     instrument_name: Optional[str] = None
-    isin: Optional[str] = None
+    isin: Optional[str] = Field(
+        default=None,
+        description="ISIN, or the security code as printed (e.g. a US CUSIP); no warning needed for the latter",
+    )
     quantity: Optional[Decimal] = Field(
         default=None, description="Quantity actually traded (nominal value for bonds)"
     )

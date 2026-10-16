@@ -37,7 +37,12 @@ printed. If something is missing, leave it null / empty and add a note in `warni
 illegible or ambiguous in the document. One short sentence each, in English. Do not comment on \
 the arithmetic or on whether it is a buy or a sale (code checks those), do not restate values \
 you already filled in, do not describe the instrument. Usually the list is empty.
-- Amounts are positive numbers. Convert Italian formats (1.234,56) to plain decimals (1234.56).
+- Amounts are positive numbers. Detect the number format from the document itself: Italian \
+(1.234,56: comma decimal, dot thousands) or English (1,234.56: dot decimal, comma thousands). \
+Decide from the whole document (language, currency, numbers with a clear decimal part such as \
+'66,430000' or '1,234.56'), not from one ambiguous value like '1.234'. Always output plain \
+decimals with a dot and no thousands separator (1234.56).
+- `isin` may hold the printed security code when it is not an ISIN (e.g. a US CUSIP): do not add a warning about it.
 - `principal_amount` is the trade value before accrued interest, fees and taxes ('controvalore').
 - `accrued_interest` is the accrued-interest amount ('controvalore rateo interessi'), 0 if none.
 - List every commission/fee line in `fee_items` and every tax line (e.g. 'imposta sostitutiva \

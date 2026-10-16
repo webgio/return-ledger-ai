@@ -73,3 +73,13 @@ def test_quota_change_and_monthly_reset(store):
     store.reset_count(pk, "2026-10")
     assert store.get_count(pk, "2026-10") == 0
     store.reset_count(pk, "2026-10")  # already gone: no error
+
+
+def test_rotate_guest(store):
+    label = f"g-{uuid.uuid4().hex[:8]}"
+    store.put_guest("old-" + label, label, 4)
+    store.set_guest_enabled(label, False)
+    assert store.rotate_guest(label, "new-" + label)
+    assert store.get_guest("old-" + label) is None
+    assert store.get_guest("new-" + label) == {"label": label, "monthly_quota": 4, "enabled": False}
+    assert not store.rotate_guest("nobody-" + label, "x-" + label)

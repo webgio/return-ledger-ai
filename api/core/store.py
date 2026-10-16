@@ -8,6 +8,7 @@ Interface:
   get_guest(code_hash) -> dict | None      guest rows: label, monthly_quota, enabled
   put_guest(code_hash, label, monthly_quota)
   set_guest_enabled(label, enabled) -> bool
+  rotate_guest(label, new_code_hash) -> bool         new code, same label/quota/enabled/usage
   list_guests() -> list[dict]
   try_increment(pk, rk, limit) -> (allowed, count)   atomic, never exceeds `limit`
   decrement(pk, rk)                                  give a credit back
@@ -52,6 +53,13 @@ class MemoryStore:
 
     def set_guest_quota(self, label: str, monthly_quota: int) -> bool:
         return self._update_guest(label, monthly_quota=monthly_quota)
+
+    def rotate_guest(self, label: str, new_code_hash: str) -> bool:
+        for old_hash, g in list(self._guests.items()):
+            if g["label"] == label:
+                self._guests[new_code_hash] = self._guests.pop(old_hash)
+                return True
+        return False
 
     def list_guests(self) -> list[dict[str, Any]]:
         return [dict(g) for g in self._guests.values()]
@@ -129,6 +137,24 @@ class TableStore:
 
     def set_guest_quota(self, label: str, monthly_quota: int) -> bool:
         return self._update_guest(label, monthly_quota=monthly_quota)
+
+    def rotate_guest(self, label: str, new_code_hash: str) -> bool:
+        # The row is keyed by the code hash: create the new row first, then drop the old one,
+        # so the guest is never left without a valid code if the second step fails.
+        for e in self._guests.query_entities(f"PartitionKey eq '{GUEST_PK}'"):
+            if e["label"] == label:
+                self._guests.create_entity(
+                    {
+                        "PartitionKey": GUEST_PK,
+                        "RowKey": new_code_hash,
+                        "label": label,
+                        "monthly_quota": int(e["monthly_quota"]),
+                        "enabled": bool(e["enabled"]),
+                    }
+                )
+                self._guests.delete_entity(GUEST_PK, e["RowKey"])
+                return True
+        return False
 
     def list_guests(self) -> list[dict[str, Any]]:
         return [
