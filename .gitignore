@@ -1,0 +1,10 @@
+local.settings.json
+__pycache__/
+.pytest_cache/
+*.pdf
+.venv/
+.DS_Store
+# Azurite local emulator data
+__azurite_db_*.json
+__blobstorage__/
+__queuestorage__/

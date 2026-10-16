@@ -1,0 +1,1906 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Return Ledger</title>
+<style>
+  :root{
+    --ink:#1B2A2E;
+    --ink-soft:#4B5B5C;
+    --ink-faint:#7C8A87;
+    --paper:#F4F6F3;
+    --surface:#FFFFFF;
+    --surface-2:#EEF1EC;
+    --line:#DADFDA;
+    --line-strong:#C3CAC4;
+    --accent:#2F6F63;
+    --accent-strong:#1E4E45;
+    --accent-soft:#E1EDE8;
+    --gain:#2E7D46;
+    --gain-soft:#E4F3E7;
+    --loss:#B23B3B;
+    --loss-soft:#F7E7E5;
+    --caution:#8A5A00;
+    --caution-soft:#FBF0D9;
+    --shadow: 0 1px 2px rgba(20,30,28,0.06), 0 4px 14px rgba(20,30,28,0.06);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#E7ECE8;
+      --ink-soft:#AAB6B1;
+      --ink-faint:#7C8A87;
+      --paper:#10161A;
+      --surface:#182023;
+      --surface-2:#1E2729;
+      --line:#2A3336;
+      --line-strong:#374144;
+      --accent:#5FC0AC;
+      --accent-strong:#8AD8C7;
+      --accent-soft:#1E3430;
+      --gain:#57C278;
+      --gain-soft:#193226;
+      --loss:#E2726B;
+      --loss-soft:#3A2320;
+      --caution:#E3B45C;
+      --caution-soft:#3A2F17;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#E7ECE8;
+    --ink-soft:#AAB6B1;
+    --ink-faint:#7C8A87;
+    --paper:#10161A;
+    --surface:#182023;
+    --surface-2:#1E2729;
+    --line:#2A3336;
+    --line-strong:#374144;
+    --accent:#5FC0AC;
+    --accent-strong:#8AD8C7;
+    --accent-soft:#1E3430;
+    --gain:#57C278;
+    --gain-soft:#193226;
+    --loss:#E2726B;
+    --loss-soft:#3A2320;
+    --caution:#E3B45C;
+    --caution-soft:#3A2F17;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+    padding-inline:20px;
+    padding-block: max(20px, env(safe-area-inset-top, 0px)) max(28px, env(safe-area-inset-bottom, 0px));
+  }
+  .wrap{ max-width:1320px; margin:0 auto; }
+
+  h1,h2,h3{ font-family:"Spectral", Georgia, serif; font-weight:600; margin:0; text-wrap:balance; }
+  .num{ font-family:"IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  header.top{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:16px;
+    flex-wrap:wrap;
+    padding-block:18px 22px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:24px;
+  }
+  header.top h1{ font-size:1.9rem; letter-spacing:-0.01em; color:var(--ink); }
+  header.top p{ margin:6px 0 0; color:var(--ink-soft); font-size:0.92rem; max-width:52ch; }
+  .badge{
+    font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em;
+    color:var(--accent-strong); background:var(--accent-soft);
+    border-radius:999px; padding:4px 11px; white-space:nowrap;
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+    gap:22px;
+    align-items:start;
+  }
+  @media (max-width: 860px){
+    .layout{ grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .card{
+    min-width:0;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  .card-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:16px 18px 12px;
+    border-bottom:1px solid var(--line);
+    gap:10px; flex-wrap:wrap;
+  }
+  .card-head h2{ font-size:1.05rem; }
+  .hint{ font-size:0.78rem; color:var(--ink-faint); line-height:1.5; }
+  .card-body{ padding:16px 18px 18px; }
+
+  .btnrow{ display:flex; gap:8px; flex-wrap:wrap; }
+  button{
+    font-family:inherit; font-size:0.82rem; cursor:pointer;
+    border-radius:7px; border:1px solid var(--line-strong);
+    background:var(--surface); color:var(--ink);
+    padding:7px 12px; line-height:1.2;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+  button:hover{ border-color:var(--accent); }
+  button:focus-visible, input:focus-visible, select:focus-visible{
+    outline:2px solid var(--accent); outline-offset:1px;
+  }
+  button.primary{ background:var(--accent); border-color:var(--accent); color:var(--surface); }
+  button.primary:hover{ background:var(--accent-strong); border-color:var(--accent-strong); }
+  button.ghost{ border-color:transparent; background:transparent; color:var(--ink-soft); }
+  button.ghost:hover{ color:var(--loss); border-color:var(--loss); }
+  button.small{ padding:4px 8px; font-size:0.74rem; }
+
+  table.ledger{ width:100%; border-collapse:collapse; font-size:0.86rem; }
+  #ledger-table{ min-width:740px; }
+
+  #note-filter{
+    font-family:inherit; font-size:0.82rem; color:var(--ink);
+    border:1px solid var(--line-strong); border-radius:7px;
+    background:var(--surface); padding:6px 10px; width:100%;
+  }
+  #note-filter:focus{ outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
+  table.ledger th{
+    text-align:left; font-weight:500; font-size:0.72rem; text-transform:uppercase;
+    letter-spacing:0.05em; color:var(--ink-faint); padding:0 8px 8px; border-bottom:1px solid var(--line);
+  }
+  table.ledger td{ padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  table.ledger tr:last-child td{ border-bottom:none; }
+  table.ledger input, table.ledger select{
+    width:100%; border:1px solid transparent; background:transparent; color:var(--ink);
+    font-family:inherit; font-size:0.86rem; padding:5px 6px; border-radius:6px;
+  }
+  table.ledger input.num-input{ font-family:"IBM Plex Mono", monospace; text-align:right; }
+  /* Chrome's date input is wider than its content; pin it so the gap before Flow goes away. */
+  table.ledger input[type="date"]{ width:118px; }
+  table.ledger input:hover, table.ledger select:hover{ border-color:var(--line-strong); }
+  table.ledger input:focus, table.ledger select:focus{ border-color:var(--accent); outline:none; background:var(--surface-2); }
+  .col-del{ width:32px; text-align:center; }
+  .row-final td{ background:var(--surface-2); font-weight:600; }
+  .row-final input{ font-weight:600; }
+
+  .table-scroll{ overflow-x:auto; }
+  table.yearly{ min-width:680px; }
+  table.yearly td{ font-family:"IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; white-space:nowrap; }
+  table.yearly td:first-child{ font-family:inherit; font-weight:600; }
+  table.yearly .ytd-badge{
+    font-family:"IBM Plex Sans", sans-serif; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.04em;
+    background:var(--accent-soft); color:var(--accent-strong); padding:2px 6px; border-radius:999px; margin-left:6px; font-weight:600;
+  }
+  table.yearly .window{ font-family:"IBM Plex Sans", sans-serif; color:var(--ink-faint); font-size:0.78rem; }
+  table.yearly .muted{ color:var(--ink-faint); font-family:"IBM Plex Sans", sans-serif; font-size:0.82rem; font-style:italic; }
+  table.yearly .pos{ color:var(--gain); }
+  table.yearly .neg{ color:var(--loss); }
+
+  .flow-tag{
+    display:inline-block; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em;
+    padding:2px 7px; border-radius:999px; font-weight:600;
+  }
+  .flow-tag.in{ background:var(--gain-soft); color:var(--gain); }
+  .flow-tag.out{ background:var(--loss-soft); color:var(--loss); }
+  .flow-tag.flat{ background:var(--surface-2); color:var(--ink-faint); }
+
+  .tiles{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;
+    margin-bottom:18px;
+  }
+  @media (max-width:520px){ .tiles{ grid-template-columns:1fr; } }
+  .tile{
+    border:1px solid var(--line); border-radius:9px; padding:10px 12px;
+    background:var(--surface-2);
+  }
+  .tile .label{ font-size:0.66rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-faint); margin-bottom:4px; }
+  .tile .value{ font-size:1.14rem; font-weight:600; }
+  .tile .value.pos{ color:var(--gain); }
+  .tile .value.neg{ color:var(--loss); }
+  .tile .sub{ font-size:0.7rem; color:var(--ink-soft); margin-top:3px; }
+  .tile.wide{ grid-column: 1 / -1; }
+
+  .chart-wrap{ position:relative; }
+  svg.chart{ width:100%; height:auto; display:block; overflow:visible; }
+  .axis-label{ fill:var(--ink-faint); font-size:10px; font-family:"IBM Plex Mono", monospace; }
+  .gridline{ stroke:var(--line); stroke-width:1; }
+  .value-line{ fill:none; stroke:var(--accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .value-area{ fill:var(--accent-soft); opacity:0.7; }
+  .marker-in{ fill:var(--accent); stroke:var(--surface); stroke-width:1.5; }
+  .marker-out{ fill:var(--loss); stroke:var(--surface); stroke-width:1.5; }
+  .crosshair{ stroke:var(--ink-faint); stroke-width:1; stroke-dasharray:2 3; }
+  .hoverdot{ fill:var(--accent-strong); stroke:var(--surface); stroke-width:2; }
+
+  .tooltip{
+    position:absolute; pointer-events:none; z-index:5;
+    background:var(--ink); color:var(--paper);
+    font-size:0.74rem; line-height:1.4; padding:7px 10px; border-radius:7px;
+    box-shadow:var(--shadow); white-space:nowrap; transform:translate(-50%,-115%);
+    opacity:0; transition:opacity 0.08s ease;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .tooltip{ background:var(--surface-2); color:var(--ink); border:1px solid var(--line-strong); }
+  }
+  :root[data-theme="dark"] .tooltip{ background:var(--surface-2); color:var(--ink); border:1px solid var(--line-strong); }
+  .tooltip.show{ opacity:1; }
+  .tooltip b{ color:inherit; }
+
+  .legend-inline{ display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-size:0.75rem; color:var(--ink-soft); }
+  .legend-inline .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+
+  .method{
+    margin-top:22px; font-size:0.82rem; color:var(--ink-soft); line-height:1.6;
+  }
+  .method summary{ cursor:pointer; color:var(--ink); font-weight:500; }
+  .method summary:hover{ color:var(--accent); }
+  .method code{
+    font-family:"IBM Plex Mono", monospace; background:var(--surface-2);
+    padding:1px 5px; border-radius:4px; font-size:0.82em;
+  }
+  .warn{
+    margin-bottom:14px; padding:10px 12px; border-radius:8px;
+    font-size:0.8rem; line-height:1.5;
+  }
+  .warn.warn-error{ background:var(--loss-soft); color:var(--loss); }
+  .warn.warn-info{ background:var(--accent-soft); color:var(--accent-strong); }
+  .warn.warn-caution{ background:var(--caution-soft); color:var(--caution); }
+  .ledger-bar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-bottom:18px;
+  }
+  .ledger-bar-label{ font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-faint); }
+  .ledger-tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .ledger-tab{
+    border-radius:999px; padding:6px 14px; background:var(--surface); border:1px solid var(--line-strong);
+    color:var(--ink-soft); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .ledger-tab[aria-selected="true"]{ background:var(--accent); border-color:var(--accent); color:var(--surface); font-weight:600; }
+  #btn-new-ledger{ border-style:dashed; border-radius:999px; color:var(--accent-strong); }
+  input.ledger-name{
+    font-family:"Spectral", Georgia, serif; font-weight:600; font-size:1.05rem; color:var(--ink);
+    border:1px solid transparent; background:transparent; border-radius:6px; padding:3px 6px; margin-left:-6px;
+    min-width:0; flex:1 1 180px; max-width:340px;
+  }
+  input.ledger-name:hover{ border-color:var(--line-strong); }
+  input.ledger-name:focus{ border-color:var(--accent); outline:none; background:var(--surface-2); }
+  .perf-ledger{ font-family:"IBM Plex Sans", sans-serif; font-weight:400; font-size:0.82rem; color:var(--ink-faint); margin-left:4px; }
+  #btn-delete-ledger.armed{ color:var(--surface); background:var(--loss); border-color:var(--loss); }
+  table.compare{ min-width:720px; }
+  table.compare tbody tr{ cursor:pointer; }
+  table.compare tbody tr:hover td{ background:var(--surface-2); }
+  table.compare tr.active td{ background:var(--accent-soft); }
+  table.compare tr.active td:first-child{ color:var(--accent-strong); }
+  [hidden]{ display:none !important; }
+  .ai-panel{
+    border:1px solid var(--line-strong); border-radius:9px; background:var(--surface-2);
+    padding:12px 14px; margin-bottom:14px; font-size:0.84rem;
+  }
+  .ai-head{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .ai-head b{ font-weight:600; }
+  .ai-head .ai-close{ margin-left:auto; }
+  .ai-panel p{ margin:0 0 10px; }
+  .ai-panel .hint{ margin:0 0 10px; }
+  .ai-code-row{ display:flex; align-items:center; gap:8px 14px; flex-wrap:wrap; margin-bottom:10px; }
+  .ai-code-row input[type="password"]{
+    font-family:"IBM Plex Mono", monospace; font-size:0.84rem; color:var(--ink);
+    border:1px solid var(--line-strong); border-radius:7px; background:var(--surface);
+    padding:6px 10px; width:220px; max-width:100%;
+  }
+  .ai-code-row input[type="password"]:focus{ outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
+  .ai-panel label.check{ display:inline-flex; align-items:center; gap:6px; color:var(--ink-soft); }
+  .ai-privacy{ font-size:0.76rem; color:var(--ink-soft); line-height:1.5; }
+  .ai-result{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+  .ai-result ul{ margin:4px 0 0; padding-left:18px; }
+  .ai-result .warn{ margin-bottom:10px; }
+  .ai-status-tag{
+    display:inline-block; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em;
+    padding:2px 8px; border-radius:999px; font-weight:600; margin-right:6px;
+  }
+  .ai-status-tag.ok{ background:var(--gain-soft); color:var(--gain); }
+  .ai-status-tag.review{ background:var(--loss-soft); color:var(--loss); }
+  .ai-details{ color:var(--ink-soft); font-size:0.8rem; margin:8px 0 10px; line-height:1.6; }
+  .ai-details .num{ color:var(--ink); }
+  .ai-fields{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px 10px;
+  }
+  .ai-fields label{
+    display:flex; flex-direction:column; gap:3px;
+    font-size:0.68rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-faint);
+  }
+  .ai-fields label.wide{ grid-column:1 / -1; }
+  .ai-fields input, .ai-fields select{
+    font-family:inherit; font-size:0.86rem; color:var(--ink); text-transform:none; letter-spacing:normal;
+    border:1px solid var(--line-strong); border-radius:6px; background:var(--surface); padding:5px 7px;
+    width:100%; min-width:0;
+  }
+  .ai-fields input.num-input{ font-family:"IBM Plex Mono", monospace; text-align:right; }
+  .ai-fields input:focus, .ai-fields select:focus{ border-color:var(--accent); outline:none; }
+  .ai-actions{ display:flex; align-items:center; gap:8px 14px; flex-wrap:wrap; margin-top:10px; }
+  button:disabled{ opacity:0.5; cursor:not-allowed; }
+  footer.note{
+    margin-top:26px; padding-top:16px; border-top:1px solid var(--line);
+    color:var(--ink-faint); font-size:0.76rem;
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Return Ledger</h1>
+      <p>Log contributions, withdrawals and valuation checkpoints; get an approximated time&#8209;weighted and money&#8209;weighted return, computed entirely in this page.</p>
+    </div>
+    <span class="badge">Client-side · proof of concept</span>
+  </header>
+
+  <nav class="ledger-bar" aria-label="Ledgers">
+    <span class="ledger-bar-label">Ledgers</span>
+    <div class="ledger-tabs" id="ledger-tabs" role="tablist"></div>
+    <button type="button" id="btn-new-ledger">+ New ledger</button>
+  </nav>
+
+  <div class="layout">
+    <section class="card">
+      <div class="card-head">
+        <input type="text" id="ledger-name" class="ledger-name" aria-label="Ledger name" maxlength="60">
+        <div class="btnrow">
+          <button type="button" id="btn-add">+ Add row</button>
+          <button type="button" id="btn-example" class="ghost">Load example</button>
+          <button type="button" id="btn-clear" class="ghost">Clear</button>
+          <button type="button" id="btn-delete-ledger" class="ghost">Delete ledger</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="btnrow" style="margin-bottom:14px;">
+          <button type="button" id="btn-export">&#8595; Download CSV</button>
+          <button type="button" id="btn-import" title="Replaces the rows of this ledger only">&#8593; Import CSV</button>
+          <input type="file" id="file-import" accept=".csv,text/csv" hidden>
+          <button type="button" id="btn-pdf" title="An AI model reads a trade confirmation and proposes one row">&#8593; Import from PDF</button>
+          <span class="hint" id="io-status" style="align-self:center;"></span>
+        </div>
+        <div class="ai-panel" id="ai-panel" hidden>
+          <div class="ai-head">
+            <b>Import from a PDF</b>
+            <span class="badge">AI &middot; beta</span>
+            <button type="button" class="small ghost ai-close" id="ai-close" aria-label="Close">&#10005;</button>
+          </div>
+          <p class="hint">Upload a buy/sell confirmation, a coupon or dividend notice, or a position statement from your bank or broker. An AI model reads it and proposes one row for this ledger; nothing is added until you confirm.</p>
+          <div class="ai-code-row" id="ai-code-row">
+            <input type="password" id="ai-code" placeholder="Access code" aria-label="Access code" autocomplete="off" spellcheck="false">
+            <label class="check"><input type="checkbox" id="ai-remember" checked> Remember on this device</label>
+            <span class="hint" style="margin:0;">Saved only in this browser's local storage.</span>
+          </div>
+          <div class="ai-code-row" id="ai-code-saved" hidden>
+            <span class="hint" style="margin:0;">Access code saved on this device.</span>
+            <button type="button" class="small" id="ai-forget">Forget code</button>
+          </div>
+          <p class="ai-privacy"><b>Privacy:</b> the PDF contains personal data (name, address, account numbers). It is sent to this site's server and to Anthropic, the AI provider, only to read it, and is not stored or logged by this site.</p>
+          <div class="btnrow" style="align-items:center;">
+            <button type="button" class="primary" id="ai-choose">Choose PDF&hellip;</button>
+            <input type="file" id="ai-file" accept="application/pdf,.pdf" hidden>
+            <span class="hint" id="ai-status" style="margin:0;"></span>
+          </div>
+          <div class="ai-result" id="ai-result" hidden></div>
+        </div>
+        <div class="btnrow" style="margin-bottom:12px; align-items:center;">
+          <input type="search" id="note-filter" placeholder="Filter by note&hellip;" style="max-width:220px;">
+          <span class="hint" id="note-filter-hint"></span>
+          <datalist id="note-suggestions"></datalist>
+        </div>
+        <div class="table-scroll">
+          <table class="ledger" id="ledger-table">
+            <thead>
+              <tr>
+                <th style="width:134px">Date</th>
+                <th style="width:110px">Flow</th>
+                <th style="width:auto">Amount</th>
+                <th style="width:auto">Fees</th>
+                <th style="width:auto">Tax withheld</th>
+                <th style="width:auto">Value after</th>
+                <th style="width:auto">Note</th>
+                <th class="col-del"></th>
+              </tr>
+            </thead>
+            <tbody id="ledger-body"></tbody>
+          </table>
+        </div>
+        <p class="hint" style="margin-top:10px;">"Value after" is only required for <b>Valuation</b> rows and the last row (today's value) &mdash; leave it blank on a Deposit or Withdraw row if your bank doesn't give you a historical value for that date. The first row's value defaults to its deposit amount if left blank. <b>Fees</b> and <b>Tax withheld</b> are optional costs deducted from a Deposit or Withdraw &mdash; leave them at 0 if none applied. Amount stays the gross figure (what actually moved in/out of the account, matching your statement); fees/tax only affect the separate net-of-cost XIRR below. <b>Note</b> is a free-text label purely for your own reference (e.g. "rent", "principal", "interest") &mdash; it never affects the calculations, and the filter above only changes which rows are shown here, never what's used in the results.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Performance <span class="perf-ledger" id="perf-ledger-name"></span></h2>
+        <span class="hint" id="period-hint"></span>
+      </div>
+      <div class="card-body">
+        <div class="warn" id="approx-warn" hidden></div>
+
+        <div class="tiles" id="tiles"></div>
+
+        <div class="chart-wrap">
+          <svg class="chart" id="chart" viewBox="0 0 560 230" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="tooltip" id="tooltip"></div>
+        </div>
+        <div class="legend-inline">
+          <span><span class="dot" style="background:var(--accent);"></span>Portfolio value</span>
+          <span><span class="dot" style="background:var(--accent);"></span>Deposit</span>
+          <span><span class="dot" style="background:var(--loss);"></span>Withdrawal</span>
+          <span>Dashed outline = no value entered, position estimated</span>
+        </div>
+
+        <details class="method">
+          <summary>How this is calculated</summary>
+          <p style="margin-top:8px;"><b>Time-weighted return (TWR):</b> the ledger is split into sub-periods at each row where a value is actually known (a valuation row, or a deposit/withdrawal you also priced). Between two known values, Modified Dietz estimates the sub-period return from the start value, end value, and the dated flows in between, weighted by how long each was invested &mdash; no value is required at every single flow. The sub-period returns are chain-linked, then annualized over the full span. With only an opening and a closing value, this collapses to one Modified Dietz estimate for the whole period.</p>
+          <p><b>Money-weighted return (XIRR):</b> every deposit and withdrawal is treated as a signed cash flow on its date, with the final value as a closing inflow; the annual rate that makes their net present value zero is found numerically (Newton&#8209;Raphson with a bisection fallback). XIRR never needs interim values &mdash; only dated flows and the current value. If the first row is a valuation carrying a pre-existing balance rather than a deposit, that balance is treated as if it were invested on that date, since XIRR has no way to know when it actually went in &mdash; skipping it would understate the invested capital and wildly overstate the return.</p>
+          <p><b>Fees, tax, and gross vs. net:</b> the Amount field always stays the gross figure &mdash; what actually moved in or out of the account, matching your broker statement. That's what TWR uses, so it keeps measuring market performance on its own, undistorted by what you paid in costs. Fees and tax you log on a Deposit or Withdraw only feed a second, separate figure: <b>XIRR &middot; net</b>, computed on the amount minus fees and tax (what actually reached your pocket, or cost you extra on the way in). The gap between gross and net XIRR is the <b>cost drag</b> tile &mdash; roughly how many percentage points a year fees and tax are costing you. Tax withheld on unrealized gains inside valuation checkpoints isn't captured this way; only tax you actually record against a withdrawal is.</p>
+        </details>
+
+        <footer class="note">All data stays in this browser; nothing is uploaded, except a PDF you explicitly send to the AI import. Figures are only as accurate as the valuation checkpoints you enter.</footer>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:22px;" id="compare-card">
+    <div class="card-head">
+      <h2>Compare ledgers</h2>
+      <span class="hint">Each ledger measured on its own flows and valuations &middot; click a row to open it</span>
+    </div>
+    <div class="card-body">
+      <div class="warn warn-info" id="compare-empty" hidden>Create a second ledger (for example one per instrument: bonds, ETFs, an apartment) to compare their returns side by side.</div>
+      <div class="table-scroll">
+        <table class="ledger yearly compare" id="compare-table">
+          <thead>
+            <tr>
+              <th>Ledger</th>
+              <th>Window</th>
+              <th>Current value</th>
+              <th>Gain / loss</th>
+              <th>TWR ann.</th>
+              <th>XIRR gross</th>
+              <th>XIRR net</th>
+            </tr>
+          </thead>
+          <tbody id="compare-body"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:10px;">Ledgers aren't summed into a total: their valuations fall on different dates, so a combined figure would be mostly interpolation. Compare XIRR for "which did better for my money", TWR for "which asset performed better".</p>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:22px;">
+    <div class="card-head">
+      <h2>Yearly performance <span class="perf-ledger" id="yearly-ledger-name"></span></h2>
+      <span class="hint">YTD, and each calendar year your data covers</span>
+    </div>
+    <div class="card-body">
+      <div class="warn warn-info" id="yearly-empty" hidden>Add ledger rows spanning more than one calendar year to see a year-by-year breakdown.</div>
+      <div class="table-scroll">
+        <table class="ledger yearly" id="yearly-table">
+          <thead>
+            <tr>
+              <th style="width:90px">Year</th>
+              <th style="width:auto">Window</th>
+              <th style="width:auto">TWR</th>
+              <th style="width:auto">XIRR gross</th>
+              <th style="width:auto">XIRR net</th>
+              <th style="width:auto">Start value</th>
+              <th style="width:auto">End value</th>
+              <th style="width:auto">Gain / loss</th>
+            </tr>
+          </thead>
+          <tbody id="yearly-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "return-ledger-v1";   // legacy single-ledger key, read once for migration
+  var STORE_KEY = "return-ledger-v2";
+  var body = document.getElementById("ledger-body");
+  var tilesEl = document.getElementById("tiles");
+  var chartEl = document.getElementById("chart");
+  var tooltipEl = document.getElementById("tooltip");
+  var periodHint = document.getElementById("period-hint");
+  var approxWarn = document.getElementById("approx-warn");
+
+  function uid(){ return "r" + Math.random().toString(36).slice(2, 9); }
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+  function exampleRows(){
+    var d = new Date();
+    function iso(monthsAgo, day){
+      var dt = new Date(d.getFullYear(), d.getMonth() - monthsAgo, day || d.getDate());
+      return dt.toISOString().slice(0,10);
+    }
+    return [
+      { id: uid(), date: iso(18), type: "deposit", amount: 15000, fees: 0, tax: 0, value: null, note: "initial deposit" },
+      { id: uid(), date: iso(12), type: "deposit", amount: 5000, fees: 2.5, tax: 0, value: null, note: "top-up" },
+      { id: uid(), date: iso(7),  type: "valuation", amount: 0, fees: 0, tax: 0, value: 24950, note: "" },
+      { id: uid(), date: iso(3),  type: "withdraw", amount: 2000, fees: 5, tax: 182.4, value: null, note: "rebalance" },
+      { id: uid(), date: todayStr(), type: "valuation", amount: 0, fees: 0, tax: 0, value: 28430, note: "" }
+    ];
+  }
+
+  function normalizeRow(r){
+    if(typeof r.fees !== "number" || isNaN(r.fees)) r.fees = 0;
+    if(typeof r.tax !== "number" || isNaN(r.tax)) r.tax = 0;
+    if(typeof r.note !== "string") r.note = "";
+    return r;
+  }
+
+  function blankRows(){
+    return [
+      { id: uid(), date: todayStr(), type: "deposit", amount: 0, fees: 0, tax: 0, value: null, note: "" },
+      { id: uid(), date: todayStr(), type: "valuation", amount: 0, fees: 0, tax: 0, value: 0, note: "" }
+    ];
+  }
+
+  // ---- Multi-ledger store ----
+  // { ledgers: [{ id, name, rows }], activeId }. Each ledger is fully
+  // independent (its own flows and its own valuations), so its returns
+  // mean something on their own. `rows` below always points at the
+  // active ledger's rows, so the single-ledger code keeps working as is.
+  function loadStore(){
+    try{
+      var raw2 = localStorage.getItem(STORE_KEY);
+      if(raw2){
+        var s = JSON.parse(raw2);
+        if(s && Array.isArray(s.ledgers) && s.ledgers.length){
+          s.ledgers.forEach(function(l){
+            l.rows = Array.isArray(l.rows) && l.rows.length ? l.rows.map(normalizeRow) : blankRows();
+            if(typeof l.name !== "string" || !l.name.trim()) l.name = "Untitled";
+          });
+          if(!s.ledgers.some(function(l){ return l.id === s.activeId; })) s.activeId = s.ledgers[0].id;
+          return s;
+        }
+      }
+    }catch(e){}
+    // First run on this version: carry over the old single ledger, if any.
+    var legacy = null;
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        var parsed = JSON.parse(raw);
+        if(Array.isArray(parsed) && parsed.length) legacy = parsed.map(normalizeRow);
+      }
+    }catch(e){}
+    var first = { id: "L" + uid(), name: legacy ? "Portfolio" : "Example portfolio", rows: legacy || exampleRows() };
+    return { ledgers: [first], activeId: first.id };
+  }
+
+  var store = loadStore();
+
+  function activeLedger(){
+    for(var i=0; i<store.ledgers.length; i++) if(store.ledgers[i].id === store.activeId) return store.ledgers[i];
+    return store.ledgers[0];
+  }
+
+  function saveRows(){
+    activeLedger().rows = rows;
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+  }
+
+  var rows = activeLedger().rows;
+
+  function addRow(prefill){
+    rows.push(Object.assign({ id: uid(), date: todayStr(), type: "deposit", amount: 0, fees: 0, tax: 0, value: null, note: "" }, prefill || {}));
+    saveRows(); render();
+  }
+
+  function hasValue(row){
+    return row.value !== null && row.value !== undefined && !isNaN(row.value);
+  }
+
+  function removeRow(id){
+    rows = rows.filter(function(r){ return r.id !== id; });
+    if(rows.length === 0) rows = blankRows();
+    saveRows(); render();
+  }
+
+  // The gross flow: what actually moved in/out of the account, matching
+  // what the broker's statement (and "value after") reflects. Fees and
+  // tax already left the account too, whether or not they reached your
+  // pocket -- so this is what TWR and the opening-value math must use to
+  // stay consistent with the reported portfolio value.
+  function signedFlow(row){
+    if(row.type === "deposit") return Math.abs(Number(row.amount) || 0);
+    if(row.type === "withdraw") return -Math.abs(Number(row.amount) || 0);
+    return 0;
+  }
+
+  // The net flow: what actually reached (or left) your pocket, after
+  // fees and withheld tax. A deposit costs you the amount plus any fee;
+  // a withdrawal nets you the amount minus fee and tax. Used only for
+  // the net-of-cost XIRR -- never for TWR, which must stay tied to the
+  // account's real balance changes to keep measuring market performance.
+  function signedFlowNet(row){
+    var fees = Number(row.fees) || 0, tax = Number(row.tax) || 0;
+    if(row.type === "deposit") return Math.abs(Number(row.amount) || 0) + fees + tax;
+    if(row.type === "withdraw") return -(Math.abs(Number(row.amount) || 0) - fees - tax);
+    return 0;
+  }
+
+  function fmtMoney(n){
+    var sign = n < 0 ? "-" : "";
+    var v = Math.abs(n);
+    return sign + "&euro;" + v.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+  function fmtMoneyPlain(n){
+    var sign = n < 0 ? "-" : "";
+    var v = Math.abs(n);
+    return sign + "€" + v.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+  function fmtPct(n, digits){
+    if(n === null || n === undefined || !isFinite(n)) return "&mdash;";
+    var d = digits === undefined ? 1 : digits;
+    return (n >= 0 ? "+" : "") + (n*100).toFixed(d) + "%";
+  }
+
+  var noteFilterInput = document.getElementById("note-filter");
+  var noteFilterHint = document.getElementById("note-filter-hint");
+  var noteSuggestions = document.getElementById("note-suggestions");
+
+  function renderTable(){
+    var sorted = rows.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    body.innerHTML = "";
+
+    // Autocomplete: every distinct note already used, so typing "rent"
+    // once makes it a one-keystroke pick on every later row.
+    noteSuggestions.innerHTML = "";
+    var seenNotes = {};
+    rows.forEach(function(r){
+      var n = (r.note || "").trim();
+      if(n && !seenNotes[n]){
+        seenNotes[n] = true;
+        var opt = document.createElement("option");
+        opt.value = n;
+        noteSuggestions.appendChild(opt);
+      }
+    });
+
+    var filterQuery = (noteFilterInput.value || "").trim().toLowerCase();
+    var shownCount = 0;
+
+    sorted.forEach(function(row, idx){
+      var isLast = idx === sorted.length - 1;
+      var isFirst = idx === 0;
+      // The filter only changes what's rendered in this table -- idx,
+      // isLast and isFirst above are still computed against the full
+      // ledger, so placeholders and "current value" stay correct even
+      // when that row happens to be hidden right now.
+      if(filterQuery && (row.note || "").toLowerCase().indexOf(filterQuery) === -1) return;
+      shownCount++;
+
+      var tr = document.createElement("tr");
+      if(isLast) tr.className = "row-final";
+
+      var tdDate = document.createElement("td");
+      var inDate = document.createElement("input");
+      inDate.type = "date"; inDate.value = row.date;
+      inDate.addEventListener("change", function(){ row.date = inDate.value || todayStr(); saveRows(); render(); });
+      tdDate.appendChild(inDate);
+
+      var tdType = document.createElement("td");
+      var selType = document.createElement("select");
+      [["deposit","Deposit"],["withdraw","Withdraw"],["valuation","Valuation"]].forEach(function(opt){
+        var o = document.createElement("option"); o.value = opt[0]; o.textContent = opt[1];
+        if(row.type === opt[0]) o.selected = true;
+        selType.appendChild(o);
+      });
+      selType.addEventListener("change", function(){
+        row.type = selType.value;
+        if(row.type === "valuation"){ row.amount = 0; row.fees = 0; row.tax = 0; }
+        saveRows(); render();
+      });
+      tdType.appendChild(selType);
+
+      var tdAmt = document.createElement("td");
+      var inAmt = document.createElement("input");
+      inAmt.type = "number"; inAmt.step = "0.01"; inAmt.className = "num-input";
+      inAmt.value = row.type === "valuation" ? "" : row.amount;
+      inAmt.disabled = row.type === "valuation";
+      inAmt.placeholder = row.type === "valuation" ? "\u2014" : "0";
+      inAmt.addEventListener("input", function(){ row.amount = parseFloat(inAmt.value) || 0; saveRows(); recompute(); });
+      tdAmt.appendChild(inAmt);
+
+      var tdFees = document.createElement("td");
+      var inFees = document.createElement("input");
+      inFees.type = "number"; inFees.step = "0.01"; inFees.className = "num-input";
+      inFees.value = row.type === "valuation" ? "" : (row.fees || 0);
+      inFees.disabled = row.type === "valuation";
+      inFees.placeholder = row.type === "valuation" ? "\u2014" : "0";
+      inFees.addEventListener("input", function(){ row.fees = parseFloat(inFees.value) || 0; saveRows(); recompute(); });
+      tdFees.appendChild(inFees);
+
+      var tdTax = document.createElement("td");
+      var inTax = document.createElement("input");
+      inTax.type = "number"; inTax.step = "0.01"; inTax.className = "num-input";
+      inTax.value = row.type === "valuation" ? "" : (row.tax || 0);
+      inTax.disabled = row.type === "valuation";
+      inTax.placeholder = row.type === "valuation" ? "\u2014" : "0";
+      inTax.addEventListener("input", function(){ row.tax = parseFloat(inTax.value) || 0; saveRows(); recompute(); });
+      tdTax.appendChild(inTax);
+
+      var tdVal = document.createElement("td");
+      var inVal = document.createElement("input");
+      inVal.type = "number"; inVal.step = "0.01"; inVal.className = "num-input";
+      inVal.value = hasValue(row) ? row.value : "";
+      if(isLast){
+        inVal.placeholder = "current value";
+      } else if(row.type === "valuation"){
+        inVal.placeholder = "value (required)";
+      } else if(isFirst){
+        inVal.placeholder = "≈ " + (Math.abs(Number(row.amount)||0)).toLocaleString(undefined,{maximumFractionDigits:0}) + " (assumed)";
+      } else {
+        inVal.placeholder = "unknown – leave blank";
+      }
+      inVal.addEventListener("input", function(){
+        row.value = inVal.value === "" ? null : (parseFloat(inVal.value));
+        if(row.value !== null && isNaN(row.value)) row.value = null;
+        saveRows(); recompute();
+      });
+      tdVal.appendChild(inVal);
+
+      var tdNote = document.createElement("td");
+      var inNote = document.createElement("input");
+      inNote.type = "text"; inNote.className = "note-input";
+      inNote.value = row.note || "";
+      inNote.placeholder = "e.g. rent, principal…";
+      inNote.setAttribute("list", "note-suggestions");
+      inNote.addEventListener("input", function(){ row.note = inNote.value; saveRows(); });
+      inNote.addEventListener("change", function(){
+        // A new note value can change what the autocomplete list offers
+        // and, if a filter is active, whether this row still matches it.
+        renderTable();
+      });
+      tdNote.appendChild(inNote);
+
+      var tdDel = document.createElement("td");
+      tdDel.className = "col-del";
+      var btnDel = document.createElement("button");
+      btnDel.className = "small ghost"; btnDel.type = "button"; btnDel.textContent = "✕";
+      btnDel.setAttribute("aria-label", "Remove row");
+      btnDel.addEventListener("click", function(){ removeRow(row.id); });
+      tdDel.appendChild(btnDel);
+
+      tr.appendChild(tdDate); tr.appendChild(tdType); tr.appendChild(tdAmt); tr.appendChild(tdFees); tr.appendChild(tdTax); tr.appendChild(tdVal); tr.appendChild(tdNote); tr.appendChild(tdDel);
+      body.appendChild(tr);
+    });
+
+    if(filterQuery){
+      noteFilterHint.textContent = shownCount + " of " + sorted.length + " rows shown";
+    } else {
+      noteFilterHint.textContent = "";
+    }
+  }
+
+  // ---- Financial math ----
+
+  function daysBetween(d1, d2){
+    return (new Date(d2) - new Date(d1)) / (1000*60*60*24);
+  }
+
+  // Anchors are rows whose portfolio value is actually known (or can be
+  // safely assumed). Between two anchors we don't know the path the
+  // portfolio took, so we apply Modified Dietz: it needs only the start
+  // and end value plus the dated cash flows in between, weighted by how
+  // long each was invested. Chain-linking anchor-to-anchor segments turns
+  // that into a full (approximated) time-weighted return -- exact when
+  // every flow has a known value, a fair estimate when most don't.
+  function getAnchors(sorted){
+    var anchors = [];
+    sorted.forEach(function(row, idx){
+      if(hasValue(row)){
+        anchors.push({ idx: idx, date: row.date, value: row.value, implied: false });
+      } else if(idx === 0 && row.type === "deposit"){
+        anchors.push({ idx: idx, date: row.date, value: signedFlow(row), implied: true });
+      }
+    });
+    return anchors;
+  }
+
+  function computeTWR(sorted){
+    if(sorted.length < 2) return { error: "need-two-rows" };
+    var anchors = getAnchors(sorted);
+    var lastRow = sorted[sorted.length - 1];
+    if(!hasValue(lastRow)) return { error: "missing-final-value" };
+    if(!anchors.length || anchors[0].idx !== 0) return { error: "missing-opening-value" };
+    if(anchors[anchors.length - 1].idx !== sorted.length - 1){
+      anchors.push({ idx: sorted.length - 1, date: lastRow.date, value: lastRow.value, implied: false });
+    }
+    if(anchors.length < 2) return { error: "missing-final-value" };
+
+    var subReturns = [];
+    for(var a = 0; a < anchors.length - 1; a++){
+      var A = anchors[a], B = anchors[a+1];
+      var D = daysBetween(A.date, B.date);
+      var netCF = 0, weightedCF = 0;
+      for(var i = A.idx + 1; i <= B.idx; i++){
+        var flow = signedFlow(sorted[i]);
+        if(flow === 0) continue;
+        var t = daysBetween(A.date, sorted[i].date);
+        var w = D > 0 ? (D - t) / D : 0;
+        netCF += flow;
+        weightedCF += flow * w;
+      }
+      var denom = A.value + weightedCF;
+      var gain = B.value - A.value - netCF;
+      var r = denom !== 0 ? gain / denom : 0;
+      subReturns.push(r);
+    }
+
+    var cumulative = 1;
+    subReturns.forEach(function(r){ cumulative *= (1 + r); });
+    cumulative -= 1;
+    var totalDays = daysBetween(anchors[0].date, anchors[anchors.length-1].date);
+    var annualized = totalDays > 0 ? Math.pow(1 + cumulative, 365 / totalDays) - 1 : null;
+    return {
+      cumulative: cumulative, annualized: annualized, periods: subReturns.length, days: totalDays,
+      impliedOpening: anchors[0].implied, anchorCount: anchors.length
+    };
+  }
+
+  // How much capital was already invested before the ledger's first row,
+  // beyond what that row's own flow already accounts for. An opening
+  // "valuation" row (flow = 0, value = pre-existing balance) is entirely
+  // this kind of capital; a first row that's a deposit whose value matches
+  // its own amount contributes none (it's a fresh start, already counted
+  // as a flow). Both XIRR and the gain/loss tile need this so they agree
+  // with the opening-value tile shown to the user.
+  function getOpeningBasis(sorted, flowFn){
+    flowFn = flowFn || signedFlow;
+    var first = sorted[0];
+    if(!first) return { basis: 0, known: false, openingValue: null, implied: false };
+    if(hasValue(first)){
+      return { basis: first.value - flowFn(first), known: true, openingValue: first.value, implied: false };
+    }
+    if(first.type === "deposit"){
+      return { basis: 0, known: true, openingValue: flowFn(first), implied: true };
+    }
+    return { basis: 0, known: false, openingValue: null, implied: false };
+  }
+
+  // flowFn picks which flow each row contributes: signedFlow (default) is
+  // the gross amount that moved through the account, for a fund-style
+  // "XIRR before costs"; signedFlowNet nets out fees/tax, for "what did I
+  // actually walk away with, annualized". Either way the closing value is
+  // the same real portfolio value -- costs don't change what it's worth.
+  function computeXIRR(sorted, flowFn){
+    flowFn = flowFn || signedFlow;
+    var lastRow = sorted[sorted.length - 1];
+    if(!hasValue(lastRow)) return null;
+    var opening = getOpeningBasis(sorted, flowFn);
+    var flows = [];
+    sorted.forEach(function(row, idx){
+      var isLast = idx === sorted.length - 1;
+      var flow = flowFn(row);
+      // Money already invested before the ledger starts has no known
+      // investment date, so -- same assumption Modified Dietz makes for
+      // TWR -- treat it as invested right at the first row's date.
+      // Skipping this undercounts the capital that earned the final
+      // return and wildly overstates XIRR.
+      if(idx === 0 && opening.known && Math.abs(opening.basis) > 0.005){
+        flows.push({ date: row.date, amount: -opening.basis });
+      }
+      if(flow !== 0) flows.push({ date: row.date, amount: -flow });
+      if(isLast) flows.push({ date: row.date, amount: row.value });
+    });
+    if(flows.length < 2) return null;
+    var hasPos = flows.some(function(f){ return f.amount > 0; });
+    var hasNeg = flows.some(function(f){ return f.amount < 0; });
+    if(!hasPos || !hasNeg) return null;
+
+    var t0 = new Date(flows[0].date);
+    function years(d){ return daysBetween(t0, d) / 365; }
+
+    function npv(rate){
+      return flows.reduce(function(sum, f){
+        return sum + f.amount / Math.pow(1 + rate, years(f.date));
+      }, 0);
+    }
+    function dnpv(rate){
+      return flows.reduce(function(sum, f){
+        var t = years(f.date);
+        if(t === 0) return sum;
+        return sum - t * f.amount / Math.pow(1 + rate, t + 1);
+      }, 0);
+    }
+
+    var rate = 0.1, prevRate;
+    var converged = false;
+    for(var iter=0; iter<60; iter++){
+      var f = npv(rate);
+      var d = dnpv(rate);
+      if(Math.abs(d) < 1e-10) break;
+      prevRate = rate;
+      rate = rate - f/d;
+      if(rate <= -0.999) rate = -0.999 + 1e-6;
+      if(Math.abs(rate - prevRate) < 1e-7){ converged = true; break; }
+    }
+    if(!converged || !isFinite(rate)){
+      var lo = -0.99, hi = 10;
+      var flo = npv(lo), fhi = npv(hi);
+      if(flo * fhi < 0){
+        for(var b=0; b<200; b++){
+          var mid = (lo+hi)/2, fm = npv(mid);
+          if(Math.abs(fm) < 1e-6){ rate = mid; converged = true; break; }
+          if((flo < 0) === (fm < 0)){ lo = mid; flo = fm; } else { hi = mid; }
+          rate = mid;
+        }
+        converged = true;
+      }
+    }
+    return converged ? rate : null;
+  }
+
+  // ---- Yearly breakdown ----
+
+  // Value at an arbitrary date, by linear interpolation between the two
+  // known anchors either side of it (or an exact match). Returns null if
+  // the date falls outside the span the ledger's known values actually
+  // cover -- deliberately never extrapolated.
+  function valueAtDate(anchors, timeMs){
+    if(!anchors.length) return null;
+    var before = null, after = null;
+    for(var i=0; i<anchors.length; i++){
+      var at = new Date(anchors[i].date).getTime();
+      if(at <= timeMs) before = anchors[i];
+      if(at >= timeMs && after === null) after = anchors[i];
+    }
+    if(before && after){
+      var bt = new Date(before.date).getTime(), at2 = new Date(after.date).getTime();
+      if(bt === at2) return before.value;
+      return before.value + (after.value - before.value) * ((timeMs - bt) / (at2 - bt));
+    }
+    return null;
+  }
+
+  // One year's return, computed by slicing the ledger to [yearStart,
+  // yearEnd] and bracketing it with two synthetic valuation rows holding
+  // the interpolated value at each boundary -- then just re-running the
+  // same TWR/XIRR math used for the whole ledger on that slice. The most
+  // recent year is YTD if the ledger doesn't yet reach December 31.
+  function computeYearlyBreakdown(sorted){
+    if(sorted.length < 2) return [];
+    var lastRow = sorted[sorted.length - 1];
+    if(!hasValue(lastRow)) return [];
+    var anchors = getAnchors(sorted);
+    if(!anchors.length || anchors[0].idx !== 0) return [];
+
+    var ledgerFirstDate = sorted[0].date;
+    var ledgerLastDate = lastRow.date;
+    var firstYear = new Date(ledgerFirstDate).getFullYear();
+    var lastYear = new Date(ledgerLastDate).getFullYear();
+
+    var results = [];
+    for(var y = lastYear; y >= firstYear; y--){
+      var yearStartDate = (y === firstYear) ? ledgerFirstDate : (y + "-01-01");
+      var yearEndDate = (y === lastYear) ? ledgerLastDate : (y + "-12-31");
+      var isYTD = (y === lastYear) && (yearEndDate !== (y + "-12-31"));
+
+      if(yearStartDate >= yearEndDate){
+        results.push({ year: y, unavailable: true, isYTD: isYTD });
+        continue;
+      }
+
+      var startValue = valueAtDate(anchors, new Date(yearStartDate).getTime());
+      var endValue = valueAtDate(anchors, new Date(yearEndDate).getTime());
+      if(startValue === null || endValue === null){
+        results.push({ year: y, unavailable: true, isYTD: isYTD });
+        continue;
+      }
+
+      var windowRows = sorted.filter(function(r){ return r.date >= yearStartDate && r.date <= yearEndDate; });
+      var subRows = [{ date: yearStartDate, type: "valuation", amount: 0, value: startValue }]
+        .concat(windowRows)
+        .concat([{ date: yearEndDate, type: "valuation", amount: 0, value: endValue }]);
+
+      results.push({
+        year: y, isYTD: isYTD, unavailable: false,
+        startDate: yearStartDate, endDate: yearEndDate,
+        startValue: startValue, endValue: endValue,
+        twr: computeTWR(subRows), xirr: computeXIRR(subRows), xirrNet: computeXIRR(subRows, signedFlowNet)
+      });
+    }
+    return results;
+  }
+
+  // ---- Chart ----
+
+  // For rows with no known value, estimate a chart position by linear
+  // interpolation between the nearest anchors either side -- a straight
+  // line, same honest "we don't know the path" assumption Modified Dietz
+  // makes, just drawn instead of computed.
+  function effectiveValues(sorted){
+    var anchors = getAnchors(sorted);
+    var lastRow = sorted[sorted.length - 1];
+    if(hasValue(lastRow) && (!anchors.length || anchors[anchors.length-1].idx !== sorted.length-1)){
+      anchors.push({ idx: sorted.length - 1, date: lastRow.date, value: lastRow.value, implied: false });
+    }
+    return sorted.map(function(row, idx){
+      if(hasValue(row)) return { row: row, value: row.value, estimated: false };
+      var before = null, after = null;
+      anchors.forEach(function(a){
+        if(a.idx <= idx) before = a;
+        if(a.idx >= idx && !after) after = a;
+      });
+      if(before && after && before.idx !== after.idx){
+        var span = daysBetween(before.date, after.date);
+        var t = daysBetween(before.date, row.date);
+        var frac = span > 0 ? t / span : 0;
+        return { row: row, value: before.value + (after.value - before.value) * frac, estimated: true };
+      }
+      var only = before || after;
+      return { row: row, value: only ? only.value : 0, estimated: true };
+    });
+  }
+
+  function buildChart(sorted){
+    chartEl.innerHTML = "";
+    var W = 560, H = 230, padL = 46, padR = 14, padT = 16, padB = 26;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+
+    var ns = "http://www.w3.org/2000/svg";
+    if(sorted.length < 2){
+      var t = document.createElementNS(ns, "text");
+      t.setAttribute("x", W/2); t.setAttribute("y", H/2);
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("class", "axis-label");
+      t.textContent = "Add at least two entries to see the chart";
+      chartEl.appendChild(t);
+      return;
+    }
+
+    var eff = effectiveValues(sorted);
+    var dates = sorted.map(function(r){ return new Date(r.date).getTime(); });
+    var values = eff.map(function(e){ return e.value; });
+    var minD = Math.min.apply(null, dates), maxD = Math.max.apply(null, dates);
+    var minV = Math.min.apply(null, values.concat([0]));
+    var maxV = Math.max.apply(null, values);
+    var vSpan = (maxV - minV) || 1;
+    minV = minV - vSpan*0.08;
+    maxV = maxV + vSpan*0.08;
+    var dSpan = (maxD - minD) || 1;
+
+    function x(d){ return padL + ((d - minD) / dSpan) * innerW; }
+    function y(v){ return padT + innerH - ((v - minV) / (maxV - minV)) * innerH; }
+
+    // gridlines + y labels
+    var gridCount = 4;
+    for(var g=0; g<=gridCount; g++){
+      var gv = minV + (maxV-minV) * (g/gridCount);
+      var gy = y(gv);
+      var line = document.createElementNS(ns, "line");
+      line.setAttribute("x1", padL); line.setAttribute("x2", W-padR);
+      line.setAttribute("y1", gy); line.setAttribute("y2", gy);
+      line.setAttribute("class", "gridline");
+      chartEl.appendChild(line);
+
+      var lbl = document.createElementNS(ns, "text");
+      lbl.setAttribute("x", 4); lbl.setAttribute("y", gy+3);
+      lbl.setAttribute("class", "axis-label");
+      lbl.textContent = (gv/1000).toFixed(gv >= 10000 ? 0 : 1) + "k";
+      chartEl.appendChild(lbl);
+    }
+
+    // x labels: first and last date
+    [sorted[0], sorted[sorted.length-1]].forEach(function(row, i){
+      var lbl = document.createElementNS(ns, "text");
+      lbl.setAttribute("x", i === 0 ? padL : W-padR);
+      lbl.setAttribute("y", H-6);
+      lbl.setAttribute("text-anchor", i === 0 ? "start" : "end");
+      lbl.setAttribute("class", "axis-label");
+      lbl.textContent = row.date;
+      chartEl.appendChild(lbl);
+    });
+
+    // area
+    var areaPts = eff.map(function(e){ return x(new Date(e.row.date).getTime()) + "," + y(e.value); });
+    var areaPath = "M" + x(dates[0]) + "," + y(minV) + " L" + areaPts.join(" L") + " L" + x(dates[dates.length-1]) + "," + y(minV) + " Z";
+    var area = document.createElementNS(ns, "path");
+    area.setAttribute("d", areaPath);
+    area.setAttribute("class", "value-area");
+    chartEl.appendChild(area);
+
+    // line
+    var linePath = "M" + areaPts.join(" L");
+    var line2 = document.createElementNS(ns, "path");
+    line2.setAttribute("d", linePath);
+    line2.setAttribute("class", "value-line");
+    chartEl.appendChild(line2);
+
+    // markers
+    var hoverGroup = document.createElementNS(ns, "g");
+    eff.forEach(function(e){
+      var row = e.row;
+      var cx = x(new Date(row.date).getTime()), cy = y(e.value);
+      var flow = signedFlow(row);
+      if(flow !== 0){
+        var m = document.createElementNS(ns, "circle");
+        m.setAttribute("cx", cx); m.setAttribute("cy", cy); m.setAttribute("r", 4.5);
+        m.setAttribute("class", flow > 0 ? "marker-in" : "marker-out");
+        if(e.estimated) m.setAttribute("stroke-dasharray", "1.5 1.5");
+        chartEl.appendChild(m);
+      } else {
+        var m2 = document.createElementNS(ns, "circle");
+        m2.setAttribute("cx", cx); m2.setAttribute("cy", cy); m2.setAttribute("r", 3);
+        m2.setAttribute("fill", "var(--accent)");
+        chartEl.appendChild(m2);
+      }
+
+      var hitbox = document.createElementNS(ns, "rect");
+      var hbx = Math.max(padL, cx - 14);
+      hitbox.setAttribute("x", hbx); hitbox.setAttribute("y", padT);
+      hitbox.setAttribute("width", 28); hitbox.setAttribute("height", innerH);
+      hitbox.setAttribute("fill", "transparent");
+      hitbox.style.cursor = "pointer";
+      hitbox.addEventListener("mouseenter", function(){ showTooltip(row, cx, cy, flow, e.value, e.estimated); });
+      hitbox.addEventListener("mouseleave", hideTooltip);
+      hoverGroup.appendChild(hitbox);
+    });
+    chartEl.appendChild(hoverGroup);
+
+    function showTooltip(row, cx, cy, flow, value, estimated){
+      var rect = chartEl.getBoundingClientRect();
+      var scaleX = rect.width / W;
+      var scaleY = rect.height / H;
+      tooltipEl.style.left = (cx * scaleX) + "px";
+      tooltipEl.style.top = (cy * scaleY) + "px";
+      var valueLabel = estimated ? "Value ~" : "Value ";
+      var flowLine = flow !== 0 ? ("<br>" + (flow > 0 ? "Deposit " : "Withdraw ") + fmtMoneyPlain(Math.abs(flow))) : "";
+      var estNote = estimated ? "<br><span style=\"opacity:0.75\">estimated, not entered</span>" : "";
+      tooltipEl.innerHTML = "<b>" + row.date + "</b><br>" + valueLabel + fmtMoneyPlain(value) + flowLine + estNote;
+      tooltipEl.classList.add("show");
+    }
+    function hideTooltip(){ tooltipEl.classList.remove("show"); }
+  }
+
+  // ---- Tiles + orchestration ----
+
+  var TWR_ERROR_MSG = {
+    "need-two-rows": "Add at least two ledger rows to compute a return.",
+    "missing-final-value": "Enter today's portfolio value in the last row to see returns.",
+    "missing-opening-value": "The first row needs a value, or must be a deposit (its amount is then assumed to be the opening value)."
+  };
+
+  function renderTiles(sorted){
+    var twr = computeTWR(sorted);
+    var xirr = computeXIRR(sorted);
+    var xirrNet = computeXIRR(sorted, signedFlowNet);
+    var first = sorted[0], last = sorted[sorted.length-1];
+    var netContributed = sorted.reduce(function(sum, r){ return sum + signedFlow(r); }, 0);
+    var currentValue = hasValue(last) ? last.value : netContributed;
+    var opening = getOpeningBasis(sorted);
+    var gainLoss = currentValue - netContributed - opening.basis;
+    var totalCosts = sorted.reduce(function(sum, r){ return sum + (Number(r.fees)||0) + (Number(r.tax)||0); }, 0);
+    var costDrag = (xirr !== null && xirrNet !== null) ? xirr - xirrNet : null;
+
+    if(twr.error){
+      approxWarn.hidden = false;
+      approxWarn.className = "warn warn-error";
+      approxWarn.textContent = TWR_ERROR_MSG[twr.error];
+    } else if(twr.anchorCount <= 2){
+      approxWarn.hidden = false;
+      approxWarn.className = "warn warn-info";
+      approxWarn.textContent = (twr.impliedOpening ? "Opening value assumed from the first deposit. " : "") +
+        "No valuation checkpoints between the first and last entry, so this is a single-period Modified Dietz approximation — add an interim valuation if you ever get one from your bank, for a closer estimate.";
+    } else {
+      approxWarn.hidden = true;
+    }
+
+    var totalDays = first && last ? daysBetween(first.date, last.date) : 0;
+    periodHint.textContent = totalDays > 0 ? Math.round(totalDays) + " days · " + sorted.length + " entries" : "";
+
+    function tile(label, valueHtml, cls, sub){
+      var div = document.createElement("div");
+      div.className = "tile";
+      div.innerHTML = '<div class="label">' + label + '</div><div class="value ' + (cls||"") + '">' + valueHtml + '</div>' + (sub ? '<div class="sub">'+sub+'</div>' : "");
+      return div;
+    }
+
+    var openingValue = opening.openingValue, openingImplied = opening.implied;
+
+    tilesEl.innerHTML = "";
+    tilesEl.appendChild(tile("TWR &middot; annualized", !twr.error ? fmtPct(twr.annualized, 3) : "&mdash;", !twr.error && twr.annualized >= 0 ? "pos" : "neg", "Market performance, gross of costs"));
+    tilesEl.appendChild(tile("TWR &middot; cumulative", !twr.error ? fmtPct(twr.cumulative, 3) : "&mdash;", !twr.error && twr.cumulative >= 0 ? "pos" : "neg", !twr.error ? twr.periods + " sub-period" + (twr.periods===1?"":"s") : ""));
+    tilesEl.appendChild(tile("XIRR &middot; gross", xirr !== null ? fmtPct(xirr, 3) : "&mdash;", xirr !== null && xirr >= 0 ? "pos" : "neg", "Before fees &amp; tax"));
+    tilesEl.appendChild(tile("XIRR &middot; net", xirrNet !== null ? fmtPct(xirrNet, 3) : "&mdash;", xirrNet !== null && xirrNet >= 0 ? "pos" : "neg", "What you actually walked away with"));
+    tilesEl.appendChild(tile("Cost drag &middot; annualized", costDrag !== null ? fmtPct(costDrag, 3) : "&mdash;", "", "Gross XIRR &minus; net XIRR"));
+    tilesEl.appendChild(tile("Fees &amp; tax paid", fmtMoney(totalCosts), "", "Total across all rows"));
+    tilesEl.appendChild(tile("Opening value", openingValue !== null ? fmtMoney(openingValue) : "&mdash;", "", (first ? first.date : "") + (openingImplied ? " (assumed)" : "")));
+    tilesEl.appendChild(tile("Current value", fmtMoney(currentValue), "", "Net contributed since " + (first ? first.date : "start") + ": " + fmtMoney(netContributed)));
+    var gl = tilesEl.appendChild(tile("Gain / loss", fmtMoney(gainLoss), gainLoss >= 0 ? "pos" : "neg", "Since opening value, including all flows (gross)"));
+    gl.classList.add("wide");
+  }
+
+  var yearlyBody = document.getElementById("yearly-body");
+  var yearlyEmpty = document.getElementById("yearly-empty");
+  var yearlyTable = document.getElementById("yearly-table");
+
+  function renderYearly(sorted){
+    var years = computeYearlyBreakdown(sorted);
+    yearlyBody.innerHTML = "";
+    if(!years.length){
+      yearlyTable.hidden = true;
+      yearlyEmpty.hidden = false;
+      return;
+    }
+    yearlyTable.hidden = false;
+    yearlyEmpty.hidden = true;
+
+    years.forEach(function(yr){
+      var tr = document.createElement("tr");
+      if(yr.unavailable){
+        var td = document.createElement("td");
+        td.colSpan = 8;
+        td.className = "muted";
+        td.textContent = yr.year + (yr.isYTD ? " (YTD)" : "") + " — not enough valuation data spanning this year to estimate a return.";
+        tr.appendChild(td);
+        yearlyBody.appendChild(tr);
+        return;
+      }
+
+      var yearCell = document.createElement("td");
+      yearCell.innerHTML = yr.year + (yr.isYTD ? '<span class="ytd-badge">YTD</span>' : "");
+
+      var windowCell = document.createElement("td");
+      windowCell.className = "window";
+      windowCell.textContent = yr.startDate + " → " + yr.endDate;
+
+      var twrCell = document.createElement("td");
+      var twrOk = yr.twr && !yr.twr.error;
+      twrCell.innerHTML = twrOk ? fmtPct(yr.twr.annualized, 2) : "&mdash;";
+      twrCell.className = twrOk && yr.twr.annualized >= 0 ? "pos" : (twrOk ? "neg" : "");
+
+      var xirrCell = document.createElement("td");
+      var xirrOk = yr.xirr !== null;
+      xirrCell.innerHTML = xirrOk ? fmtPct(yr.xirr, 2) : "&mdash;";
+      xirrCell.className = xirrOk && yr.xirr >= 0 ? "pos" : (xirrOk ? "neg" : "");
+
+      var xirrNetCell = document.createElement("td");
+      var xirrNetOk = yr.xirrNet !== null;
+      xirrNetCell.innerHTML = xirrNetOk ? fmtPct(yr.xirrNet, 2) : "&mdash;";
+      xirrNetCell.className = xirrNetOk && yr.xirrNet >= 0 ? "pos" : (xirrNetOk ? "neg" : "");
+
+      var startCell = document.createElement("td");
+      startCell.innerHTML = fmtMoney(yr.startValue);
+
+      var endCell = document.createElement("td");
+      endCell.innerHTML = fmtMoney(yr.endValue);
+
+      var glCell = document.createElement("td");
+      var yearNetFlow = 0;
+      sorted.forEach(function(r){
+        if(r.date >= yr.startDate && r.date <= yr.endDate) yearNetFlow += signedFlow(r);
+      });
+      var yearGain = yr.endValue - yr.startValue - yearNetFlow;
+      glCell.innerHTML = fmtMoney(yearGain);
+      glCell.className = yearGain >= 0 ? "pos" : "neg";
+
+      tr.appendChild(yearCell); tr.appendChild(windowCell); tr.appendChild(twrCell); tr.appendChild(xirrCell); tr.appendChild(xirrNetCell);
+      tr.appendChild(startCell); tr.appendChild(endCell); tr.appendChild(glCell);
+      yearlyBody.appendChild(tr);
+    });
+  }
+
+  // ---- Ledger switcher & comparison ----
+
+  var ledgerTabsEl = document.getElementById("ledger-tabs");
+  var ledgerNameInput = document.getElementById("ledger-name");
+  var perfLedgerName = document.getElementById("perf-ledger-name");
+  var yearlyLedgerName = document.getElementById("yearly-ledger-name");
+  var btnDeleteLedger = document.getElementById("btn-delete-ledger");
+  var compareBody = document.getElementById("compare-body");
+  var compareTable = document.getElementById("compare-table");
+  var compareEmpty = document.getElementById("compare-empty");
+
+  function renderLedgerBar(){
+    ledgerTabsEl.innerHTML = "";
+    store.ledgers.forEach(function(l){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "ledger-tab";
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", l.id === store.activeId ? "true" : "false");
+      b.textContent = l.name;
+      b.title = l.name;
+      b.addEventListener("click", function(){ switchLedger(l.id); });
+      ledgerTabsEl.appendChild(b);
+    });
+    var name = activeLedger().name;
+    if(document.activeElement !== ledgerNameInput) ledgerNameInput.value = name;
+    perfLedgerName.textContent = "· " + name;
+    yearlyLedgerName.textContent = "· " + name;
+    btnDeleteLedger.hidden = store.ledgers.length < 2;
+    disarmDelete();
+  }
+
+  function switchLedger(id){
+    if(id === store.activeId) return;
+    saveRows();
+    store.activeId = id;
+    rows = activeLedger().rows;
+    noteFilterInput.value = "";
+    saveRows();
+    render();
+  }
+
+  function uniqueName(base){
+    var names = store.ledgers.map(function(l){ return l.name; });
+    if(names.indexOf(base) === -1) return base;
+    for(var n=2; ; n++) if(names.indexOf(base + " " + n) === -1) return base + " " + n;
+  }
+
+  document.getElementById("btn-new-ledger").addEventListener("click", function(){
+    saveRows();
+    var l = { id: "L" + uid(), name: uniqueName("New ledger"), rows: blankRows() };
+    store.ledgers.push(l);
+    store.activeId = l.id;
+    rows = l.rows;
+    noteFilterInput.value = "";
+    saveRows(); render();
+    ledgerNameInput.focus();
+    ledgerNameInput.select();
+  });
+
+  ledgerNameInput.addEventListener("input", function(){
+    activeLedger().name = ledgerNameInput.value;
+    saveRows();
+    var tab = ledgerTabsEl.querySelector('[aria-selected="true"]');
+    if(tab){ tab.textContent = ledgerNameInput.value || "Untitled"; tab.title = tab.textContent; }
+    perfLedgerName.textContent = "· " + (ledgerNameInput.value || "Untitled");
+    yearlyLedgerName.textContent = perfLedgerName.textContent;
+    renderComparison();
+  });
+  ledgerNameInput.addEventListener("change", function(){
+    var v = ledgerNameInput.value.trim();
+    activeLedger().name = v || "Untitled";
+    saveRows(); renderLedgerBar(); renderComparison();
+  });
+
+  // Two-step delete (no browser confirm dialogs: they may be blocked here).
+  var deleteArmTimer = null;
+  function disarmDelete(){
+    clearTimeout(deleteArmTimer);
+    btnDeleteLedger.classList.remove("armed");
+    btnDeleteLedger.textContent = "Delete ledger";
+  }
+  btnDeleteLedger.addEventListener("click", function(){
+    if(store.ledgers.length < 2) return;
+    if(!btnDeleteLedger.classList.contains("armed")){
+      btnDeleteLedger.classList.add("armed");
+      btnDeleteLedger.textContent = "Click again to delete “" + activeLedger().name + "”";
+      deleteArmTimer = setTimeout(disarmDelete, 4000);
+      return;
+    }
+    var idx = store.ledgers.indexOf(activeLedger());
+    store.ledgers.splice(idx, 1);
+    store.activeId = store.ledgers[Math.max(0, idx - 1)].id;
+    rows = activeLedger().rows;
+    noteFilterInput.value = "";
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+    render();
+  });
+
+  function summarizeLedger(ledgerRows){
+    var sorted = ledgerRows.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    var first = sorted[0], last = sorted[sorted.length-1];
+    var twr = computeTWR(sorted);
+    var netContributed = sorted.reduce(function(sum, r){ return sum + signedFlow(r); }, 0);
+    var currentValue = last && hasValue(last) ? last.value : netContributed;
+    var opening = getOpeningBasis(sorted);
+    return {
+      start: first ? first.date : "", end: last ? last.date : "",
+      twr: twr.error ? null : twr.annualized,
+      xirr: computeXIRR(sorted),
+      xirrNet: computeXIRR(sorted, signedFlowNet),
+      currentValue: currentValue,
+      gainLoss: currentValue - netContributed - opening.basis
+    };
+  }
+
+  function pctCell(v){
+    var td = document.createElement("td");
+    td.innerHTML = v !== null && v !== undefined && isFinite(v) ? fmtPct(v, 2) : "&mdash;";
+    if(v !== null && v !== undefined && isFinite(v)) td.className = v >= 0 ? "pos" : "neg";
+    return td;
+  }
+
+  function renderComparison(){
+    compareBody.innerHTML = "";
+    var multi = store.ledgers.length > 1;
+    compareTable.hidden = !multi;
+    compareEmpty.hidden = multi;
+    if(!multi) return;
+    store.ledgers.forEach(function(l){
+      var s = summarizeLedger(l.id === store.activeId ? rows : l.rows);
+      var tr = document.createElement("tr");
+      if(l.id === store.activeId) tr.className = "active";
+      tr.addEventListener("click", function(){ switchLedger(l.id); });
+
+      var nameTd = document.createElement("td"); nameTd.textContent = l.name || "Untitled";
+      var winTd = document.createElement("td"); winTd.className = "window"; winTd.textContent = s.start + " → " + s.end;
+      var valTd = document.createElement("td"); valTd.innerHTML = fmtMoney(s.currentValue);
+      var glTd = document.createElement("td"); glTd.innerHTML = fmtMoney(s.gainLoss); glTd.className = s.gainLoss >= 0 ? "pos" : "neg";
+
+      tr.appendChild(nameTd); tr.appendChild(winTd); tr.appendChild(valTd); tr.appendChild(glTd);
+      tr.appendChild(pctCell(s.twr)); tr.appendChild(pctCell(s.xirr)); tr.appendChild(pctCell(s.xirrNet));
+      compareBody.appendChild(tr);
+    });
+  }
+
+  function recompute(){
+    var sorted = rows.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    renderTiles(sorted);
+    buildChart(sorted);
+    renderYearly(sorted);
+    renderComparison();
+  }
+
+  function render(){
+    renderLedgerBar();
+    renderTable();
+    recompute();
+  }
+
+  document.getElementById("btn-add").addEventListener("click", function(){ addRow(); });
+  document.getElementById("btn-example").addEventListener("click", function(){ rows = exampleRows(); saveRows(); render(); });
+  document.getElementById("btn-clear").addEventListener("click", function(){
+    rows = blankRows();
+    saveRows(); render();
+  });
+  noteFilterInput.addEventListener("input", function(){ renderTable(); });
+
+  // ---- CSV export / import ----
+
+  var ioStatus = document.getElementById("io-status");
+  var ioStatusTimer = null;
+  function setStatus(msg, isError){
+    ioStatus.textContent = msg;
+    ioStatus.style.color = isError ? "var(--loss)" : "var(--ink-faint)";
+    clearTimeout(ioStatusTimer);
+    ioStatusTimer = setTimeout(function(){ ioStatus.textContent = ""; }, 4000);
+  }
+
+  function csvEscape(v){
+    var s = String(v);
+    if(/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function rowsToCsv(sorted){
+    var lines = ["date,type,amount,fees,tax,value,note"];
+    sorted.forEach(function(r){
+      var valOut = hasValue(r) ? r.value : "";
+      var isFlow = r.type !== "valuation";
+      lines.push([
+        r.date, r.type,
+        isFlow ? (Number(r.amount)||0) : 0,
+        isFlow ? (Number(r.fees)||0) : 0,
+        isFlow ? (Number(r.tax)||0) : 0,
+        valOut,
+        r.note || ""
+      ].map(csvEscape).join(","));
+    });
+    return lines.join("\n");
+  }
+
+  function parseCsvLine(line){
+    var out = [], cur = "", inQuotes = false;
+    for(var i=0; i<line.length; i++){
+      var ch = line[i];
+      if(inQuotes){
+        if(ch === '"'){
+          if(line[i+1] === '"'){ cur += '"'; i++; } else { inQuotes = false; }
+        } else cur += ch;
+      } else {
+        if(ch === '"') inQuotes = true;
+        else if(ch === ','){ out.push(cur); cur = ""; }
+        else cur += ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function csvToRows(text){
+    var lines = text.split(/\r\n|\n|\r/).filter(function(l){ return l.trim().length; });
+    if(!lines.length) return [];
+    var start = 0;
+    var firstCols = parseCsvLine(lines[0]).map(function(c){ return c.trim().toLowerCase(); });
+    var hasHeader = firstCols[0] === "date";
+    // Three export generations to stay compatible with: date,type,amount,value
+    // (oldest) / +fees,tax / +note (current). Detect by header name when
+    // present, else fall back to column count per row.
+    var hasFeesCol = hasHeader ? firstCols.indexOf("fees") !== -1 : null;
+    var hasNoteCol = hasHeader ? firstCols.indexOf("note") !== -1 : null;
+    if(hasHeader) start = 1;
+    var out = [];
+    for(var i=start; i<lines.length; i++){
+      var cols = parseCsvLine(lines[i]);
+      if(cols.length < 4) continue;
+      var withFeesTax = hasFeesCol !== null ? hasFeesCol : (cols.length >= 6);
+      var withNote = hasNoteCol !== null ? hasNoteCol : (cols.length >= 7);
+      var date = (cols[0] || "").trim();
+      var type = (cols[1] || "").trim().toLowerCase();
+      if(["deposit","withdraw","valuation"].indexOf(type) === -1) type = "valuation";
+      var amount = parseFloat(cols[2]) || 0;
+      var fees = 0, tax = 0, note = "", rawValue;
+      if(withFeesTax){
+        fees = parseFloat(cols[3]) || 0;
+        tax = parseFloat(cols[4]) || 0;
+        rawValue = (cols[5] || "").trim();
+        if(withNote) note = (cols[6] || "").trim();
+      } else {
+        rawValue = (cols[3] || "").trim();
+      }
+      var value = rawValue === "" ? null : parseFloat(rawValue);
+      if(value !== null && isNaN(value)) value = null;
+      if(!date) continue;
+      out.push({ id: uid(), date: date, type: type, amount: amount, fees: fees, tax: tax, value: value, note: note });
+    }
+    return out;
+  }
+
+  var downloadsCap = null;
+  if(window.claude && typeof window.claude.use === "function"){
+    window.claude.use("downloads").then(function(cap){ downloadsCap = cap; }).catch(function(){ downloadsCap = null; });
+  }
+
+  document.getElementById("btn-export").addEventListener("click", function(){
+    var sorted = rows.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    var csv = rowsToCsv(sorted);
+    var slug = (activeLedger().name || "ledger").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "ledger";
+    var filename = "return-ledger-" + slug + "-" + todayStr() + ".csv";
+
+    function fallbackDownload(){
+      try{
+        var blob = new Blob([csv], { type: "text/csv" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+      }catch(e){
+        setStatus("Couldn't trigger a download in this view.", true);
+      }
+    }
+
+    if(downloadsCap && downloadsCap.save){
+      downloadsCap.save({ filename: filename, data: csv }).then(function(res){
+        setStatus(res.status === "saved" ? "Saved " + filename : "Sent " + filename);
+      }).catch(function(err){
+        if(err && err.code === "declined") return;
+        fallbackDownload();
+      });
+    } else {
+      fallbackDownload();
+    }
+  });
+
+  var fileInput = document.getElementById("file-import");
+  document.getElementById("btn-import").addEventListener("click", function(){ fileInput.click(); });
+  fileInput.addEventListener("change", function(){
+    var file = fileInput.files && fileInput.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var imported = csvToRows(String(reader.result));
+      if(!imported.length){
+        setStatus("No valid rows found in that file.", true);
+      } else {
+        rows = imported;
+        saveRows(); render();
+        setStatus("Imported " + imported.length + " row" + (imported.length===1?"":"s") + " into “" + activeLedger().name + "”.");
+      }
+      fileInput.value = "";
+    };
+    reader.onerror = function(){ setStatus("Couldn't read that file.", true); fileInput.value = ""; };
+    reader.readAsText(file);
+  });
+
+
+  // ---- AI import from a trade-confirmation PDF ----
+  // POST /api/extract (same origin, see README for the contract). The model only
+  // proposes a row: it is shown for review and added only on an explicit click.
+  // The page keeps working without the API (e.g. opened from disk).
+
+  var AI_CODE_KEY = "return-ledger-ai-code";
+  var AI_MAX_BYTES = 5 * 1024 * 1024;
+  var AI_TIMEOUT_MS = 60000;
+  var aiPanel = document.getElementById("ai-panel");
+  var aiCodeRow = document.getElementById("ai-code-row");
+  var aiCodeSaved = document.getElementById("ai-code-saved");
+  var aiCodeInput = document.getElementById("ai-code");
+  var aiRemember = document.getElementById("ai-remember");
+  var aiChoose = document.getElementById("ai-choose");
+  var aiFile = document.getElementById("ai-file");
+  var aiStatus = document.getElementById("ai-status");
+  var aiResult = document.getElementById("ai-result");
+  var aiSessionCode = "";   // used when "remember" is off
+  var aiBusy = false;
+
+  function aiStoredCode(){
+    try{ return localStorage.getItem(AI_CODE_KEY) || ""; }catch(e){ return ""; }
+  }
+  function aiForgetCode(){
+    try{ localStorage.removeItem(AI_CODE_KEY); }catch(e){}
+    aiSessionCode = "";
+    aiCodeInput.value = "";
+    aiRenderCode();
+  }
+  function aiRenderCode(){
+    var saved = !!aiStoredCode();
+    aiCodeRow.hidden = saved;
+    aiCodeSaved.hidden = !saved;
+  }
+  function aiCurrentCode(){
+    return aiStoredCode() || aiCodeInput.value.trim() || aiSessionCode;
+  }
+  function aiSetStatus(msg, isError){
+    aiStatus.textContent = msg;
+    aiStatus.style.color = isError ? "var(--loss)" : "var(--ink-faint)";
+  }
+  function aiEl(tag, cls, text){
+    var e = document.createElement(tag);
+    if(cls) e.className = cls;
+    if(text !== undefined) e.textContent = text;
+    return e;
+  }
+  function aiMoney(v){
+    return Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function aiIssueBox(cls, title, items){
+    var box = aiEl("div", "warn " + cls);
+    box.appendChild(aiEl("b", "", title));
+    var ul = aiEl("ul");
+    items.forEach(function(i){ ul.appendChild(aiEl("li", "", i.message)); });
+    box.appendChild(ul);
+    return box;
+  }
+
+  // Status tag + explanation; returns whether the result needs review.
+  function aiBeginResult(data){
+    var needsReview = data.status !== "ok";
+    aiResult.innerHTML = "";
+    aiResult.hidden = false;
+    var head = aiEl("div");
+    head.appendChild(aiEl("span", "ai-status-tag " + (needsReview ? "review" : "ok"),
+      needsReview ? "Needs review" : "Checks passed"));
+    head.appendChild(aiEl("span", "hint", needsReview
+      ? "The automatic checks found problems: compare every figure with the document before adding."
+      : "The figures add up and all appear in the document. Still give them a quick look."));
+    aiResult.appendChild(head);
+    return needsReview;
+  }
+
+  function aiShowIssues(data){
+    var errors = data.errors || [], warnings = data.warnings || [];
+    if(errors.length) aiResult.appendChild(aiIssueBox("warn-error", "Problems found", errors));
+    if(warnings.length) aiResult.appendChild(aiIssueBox("warn-caution", "Please check", warnings));
+  }
+
+  // Add / Discard buttons; with needsReview, Add stays disabled until the user confirms.
+  // onAdd returns false to keep the proposal open (e.g. a missing date).
+  function aiActions(data, needsReview, onAdd){
+    var actions = aiEl("div", "ai-actions");
+    var btnAdd = aiEl("button", "primary", "Add to this ledger");
+    btnAdd.type = "button";
+    var btnDiscard = aiEl("button", "ghost", "Discard");
+    btnDiscard.type = "button";
+    if(needsReview){
+      var lbl = aiEl("label", "check");
+      var confirm = aiEl("input"); confirm.type = "checkbox";
+      lbl.appendChild(confirm);
+      lbl.appendChild(document.createTextNode(" I checked these figures against the document"));
+      actions.appendChild(lbl);
+      btnAdd.disabled = true;
+      confirm.addEventListener("change", function(){ btnAdd.disabled = !confirm.checked; });
+    }
+    actions.appendChild(btnAdd);
+    actions.appendChild(btnDiscard);
+    if(typeof data.remaining === "number"){
+      actions.appendChild(aiEl("span", "hint", data.remaining + " import" + (data.remaining === 1 ? "" : "s") + " left this month"));
+    }
+    aiResult.appendChild(actions);
+    function close(){ aiResult.hidden = true; aiResult.innerHTML = ""; aiSetStatus(""); }
+    btnAdd.addEventListener("click", function(){
+      var name = activeLedger().name;
+      if(onAdd() === false) return;
+      close();
+      setStatus("Added 1 row to \u201c" + name + "\u201d.");
+    });
+    btnDiscard.addEventListener("click", close);
+  }
+
+  function aiShowProposal(data){
+    var row = Object.assign({}, data.row);
+    var needsReview = aiBeginResult(data);
+
+    var d = data.details || {};
+    var det = aiEl("div", "ai-details");
+    var what = [d.instrument, d.isin].filter(Boolean).join(" · ");
+    if(what) det.appendChild(aiEl("div", "", what));
+    var dates = [];
+    if(d.trade_date) dates.push("traded " + d.trade_date);
+    if(d.settlement_date) dates.push("settled " + d.settlement_date + " (row date)");
+    if(dates.length) det.appendChild(aiEl("div", "", dates.join(", ")));
+    if(d.gross !== undefined){
+      var sign = row.type === "withdraw" ? " − " : " + ";
+      var calc = aiEl("div");
+      calc.appendChild(document.createTextNode("Gross "));
+      calc.appendChild(aiEl("span", "num", aiMoney(d.gross)));
+      calc.appendChild(document.createTextNode(sign + "fees "));
+      calc.appendChild(aiEl("span", "num", aiMoney(d.fees)));
+      calc.appendChild(document.createTextNode(sign + "tax "));
+      calc.appendChild(aiEl("span", "num", aiMoney(d.taxes)));
+      calc.appendChild(document.createTextNode(" = net "));
+      calc.appendChild(aiEl("span", "num", aiMoney(d.net)));
+      det.appendChild(calc);
+    }
+    aiResult.appendChild(det);
+    aiShowIssues(data);
+
+    // Editable copy of the proposed row, same fields as a ledger row.
+    var fields = aiEl("div", "ai-fields");
+    function field(label, input, wide){
+      var l = aiEl("label", wide ? "wide" : "", label);
+      l.appendChild(input); fields.appendChild(l);
+      return input;
+    }
+    var inDate = field("Date", aiEl("input")); inDate.type = "date"; inDate.value = row.date || "";
+    var selType = field("Flow", aiEl("select"));
+    [["deposit","Deposit"],["withdraw","Withdraw"]].forEach(function(o){
+      var opt = aiEl("option", "", o[1]); opt.value = o[0];
+      if(row.type === o[0]) opt.selected = true;
+      selType.appendChild(opt);
+    });
+    function numField(label, v){
+      var i = field(label, aiEl("input")); i.type = "number"; i.step = "0.01"; i.className = "num-input"; i.value = v;
+      return i;
+    }
+    var inAmt = numField("Amount (gross)", row.amount);
+    var inFees = numField("Fees", row.fees);
+    var inTax = numField("Tax withheld", row.tax);
+    var inNote = field("Note", aiEl("input"), true); inNote.type = "text"; inNote.value = row.note || "";
+    aiResult.appendChild(fields);
+
+    aiActions(data, needsReview, function(){
+      if(!inDate.value){ aiSetStatus("Enter a date first.", true); return false; }
+      addRow({
+        date: inDate.value,
+        type: selType.value,
+        amount: parseFloat(inAmt.value) || 0,
+        fees: parseFloat(inFees.value) || 0,
+        tax: parseFloat(inTax.value) || 0,
+        value: null,
+        note: inNote.value
+      });
+    });
+  }
+
+  // A position statement becomes one valuation row: the whole account, or one position
+  // (for a ledger that tracks a single instrument).
+  function aiShowStatement(data){
+    var val = data.valuation || { options: [] };
+    var needsReview = aiBeginResult(data);
+    aiResult.appendChild(aiEl("div", "ai-details",
+      "Position statement" + (val.date ? " at " + val.date : "") +
+      ". It becomes a Valuation row: pick what this ledger tracks."));
+    aiShowIssues(data);
+
+    var fields = aiEl("div", "ai-fields");
+    function field(label, input, wide){
+      var l = aiEl("label", wide ? "wide" : "", label);
+      l.appendChild(input); fields.appendChild(l);
+      return input;
+    }
+    var sel = field("Value of", aiEl("select"), true);
+    val.options.forEach(function(o, i){
+      var opt = aiEl("option", "", o.label + " \u2014 " + aiMoney(o.value)); opt.value = String(i);
+      sel.appendChild(opt);
+    });
+    var inDate = field("Date", aiEl("input")); inDate.type = "date"; inDate.value = val.date || "";
+    var inVal = field("Value", aiEl("input")); inVal.type = "number"; inVal.step = "0.01"; inVal.className = "num-input";
+    var inNote = field("Note", aiEl("input"), true); inNote.type = "text";
+    function pick(){
+      var o = val.options[Number(sel.value)] || {};
+      inVal.value = o.value !== undefined ? o.value : "";
+      inNote.value = o.note || "";
+    }
+    sel.addEventListener("change", pick);
+    pick();
+    aiResult.appendChild(fields);
+
+    aiActions(data, needsReview, function(){
+      if(!inDate.value){ aiSetStatus("Enter a date first.", true); return false; }
+      var v = parseFloat(inVal.value);
+      if(isNaN(v)){ aiSetStatus("Enter a value first.", true); return false; }
+      addRow({ date: inDate.value, type: "valuation", amount: 0, fees: 0, tax: 0, value: v, note: inNote.value });
+    });
+  }
+
+  function aiUpload(file){
+    if(!/\.pdf$/i.test(file.name) && file.type !== "application/pdf"){ aiSetStatus("Choose a PDF file.", true); return; }
+    if(file.size > AI_MAX_BYTES){ aiSetStatus("The file is too large (maximum 5 MB).", true); return; }
+    var code = aiCurrentCode();
+    if(!code){ aiSetStatus("Enter your access code first.", true); aiCodeInput.focus(); return; }
+    if(!aiStoredCode()){
+      if(aiRemember.checked){ try{ localStorage.setItem(AI_CODE_KEY, code); }catch(e){} }
+      else aiSessionCode = code;
+    }
+
+    aiBusy = true; aiChoose.disabled = true;
+    aiResult.hidden = true; aiResult.innerHTML = "";
+    aiSetStatus("Reading “" + file.name + "”… this can take up to half a minute.");
+
+    var ctrl = typeof AbortController === "function" ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, AI_TIMEOUT_MS) : null;
+    var httpStatus = 0;
+
+    fetch("/api/extract", {
+      method: "POST",
+      headers: { "x-guest-code": code, "Content-Type": "application/pdf" },
+      body: file,
+      signal: ctrl ? ctrl.signal : undefined
+    }).then(function(r){
+      httpStatus = r.status;
+      return r.json().catch(function(){ return null; });
+    }).then(function(data){
+      if(!data){
+        aiSetStatus(httpStatus === 404 || httpStatus === 405 || httpStatus === 501
+          ? "The AI import isn't available on this copy of the page."
+          : "Unexpected reply from the server (HTTP " + httpStatus + ").", true);
+        return;
+      }
+      if(data.error){
+        var c = data.error.code;
+        if(c === "invalid_code" || c === "code_required") aiForgetCode();
+        var msg = data.error.message || "The import failed.";
+        if(typeof data.remaining === "number") msg += " (" + data.remaining + " imports left this month)";
+        aiSetStatus(msg, true);
+        return;
+      }
+      aiRenderCode();
+      aiSetStatus("");
+      if(data.kind === "statement") aiShowStatement(data); else aiShowProposal(data);
+    }).catch(function(err){
+      aiSetStatus(err && err.name === "AbortError"
+        ? "The server took too long to answer. Try again."
+        : "Couldn't reach the AI import. Check your connection, or it may not be available on this copy of the page.", true);
+    }).then(function(){
+      if(timer) clearTimeout(timer);
+      aiBusy = false; aiChoose.disabled = false;
+      aiFile.value = "";
+    });
+  }
+
+  document.getElementById("btn-pdf").addEventListener("click", function(){
+    aiPanel.hidden = !aiPanel.hidden;
+    if(!aiPanel.hidden){
+      aiRenderCode();
+      if(!aiStoredCode() && !aiSessionCode) aiCodeInput.focus();
+    }
+  });
+  document.getElementById("ai-close").addEventListener("click", function(){ aiPanel.hidden = true; });
+  document.getElementById("ai-forget").addEventListener("click", function(){ aiForgetCode(); aiCodeInput.focus(); });
+  aiChoose.addEventListener("click", function(){ if(!aiBusy) aiFile.click(); });
+  aiFile.addEventListener("change", function(){
+    var file = aiFile.files && aiFile.files[0];
+    if(file) aiUpload(file);
+  });
+
+  render();
+})();
+</script>

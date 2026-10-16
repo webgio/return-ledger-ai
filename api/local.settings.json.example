@@ -1,0 +1,14 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "ANTHROPIC_API_KEY": "<chiave del workspace dedicato, con tetto di spesa>",
+    "ANTHROPIC_MODEL": "claude-haiku-5-5",
+    "AZURE_TABLES_CONNECTION_STRING": "UseDevelopmentStorage=true",
+    "AI_ENABLED": "true",
+    "GLOBAL_DAILY_CAP": "200",
+    "MAX_FAILED_PER_HOUR": "20",
+    "ALLOW_LOGIN": "false"
+  }
+}
