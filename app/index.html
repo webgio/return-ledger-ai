@@ -541,7 +541,7 @@
 
   function blankRows(){
     return [
-      { id: uid(), date: todayStr(), type: "deposit", amount: 0, fees: 0, tax: 0, value: null, note: "" },
+      { id: uid(), date: todayStr(), type: "valuation", amount: 0, fees: 0, tax: 0, value: 0, note: "" },
       { id: uid(), date: todayStr(), type: "valuation", amount: 0, fees: 0, tax: 0, value: 0, note: "" }
     ];
   }
@@ -575,7 +575,7 @@
         if(Array.isArray(parsed) && parsed.length) legacy = parsed.map(normalizeRow);
       }
     }catch(e){}
-    var first = { id: "L" + uid(), name: legacy ? "Portfolio" : "Example portfolio", rows: legacy || exampleRows() };
+    var first = { id: "L" + uid(), name: "Portfolio", rows: legacy || blankRows() };
     return { ledgers: [first], activeId: first.id };
   }
 

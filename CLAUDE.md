@@ -40,7 +40,9 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
 - API key lives only server-side in the SWA app settings (managed functions support neither Key Vault
   references nor managed identity, checked 2026-10-14), dedicated provider workspace with spend cap.
 - Privacy: PDFs contain names/addresses/account numbers and go to the model provider. Never store or
-  log documents or model output. Disclose this before opening to the public.
+  log documents or model output. Disclose this before opening to the public. The tool schemas have
+  no field for personal data; the only free text coming back is `warnings` (`model_note`), which
+  `core/validate.py: model_notes` caps at 3 notes of 120 characters (2026-10-16).
 
 ## State
 - Done and tested: extraction/validation, ledger mapping, gate/quotas (incl. Azurite concurrency test),
