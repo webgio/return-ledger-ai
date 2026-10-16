@@ -57,8 +57,18 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
   sometimes sends "" for a missing date -> blank strings are treated as null in `models.py`.
 - Checked in the docs (2026-10-14): managed functions support `python:3.11` (also 3.9/3.10),
   HTTP triggers only, 45 s max per API request, available on the Free plan.
-- NOT verified: brokers other than MPS, SWA deployment (incl. whether the Python v2 programming
-  model in `function_app.py` runs as a managed function: check on the first deploy).
+- Deployed (2026-10-16): SWA (Free, West Europe) in the "Rotativa Cloud services" subscription,
+  https://zealous-glacier-09d07b603.4.azurestaticapps.net (random host by design; use a custom
+  domain for a readable URL). Repo github.com/webgio/return-ledger-ai (private), GitHub Actions
+  deploys on push to `main`. Python v2 model runs fine as a managed function (Oryx, 3.11).
+  Real import on the live site: correct row, 7.4 s incl. cold start. App settings on the SWA:
+  `ANTHROPIC_API_KEY` (separate prod key, same workspace), `AZURE_TABLES_CONNECTION_STRING`.
+  Locally, keychain items: `anthropic-return-ledger` (dev key), `return-ledger-tables` (prod
+  tables connection string), `return-ledger-guest-giorgio` (owner's guest code).
+  Keychain tip: `security ... -w` prompts cap input at 128 chars; use `-w "$(pbpaste)"` instead.
+- The Azure CLI here only sees the Pay-As-You-Go tenant; the Rotativa subscription needs
+  `az login --tenant ...` before any `az` command against it.
+- NOT verified: brokers other than MPS.
 - Frontend integration done (2026-10-10) in `app/index.html` (section "AI import" at the end of
   the script): verified end to end in headless Chrome against `scripts/dev_server.py` with the
   real model (wrong code, real MPS import -> addRow, mocked needs_review gating, light/dark,
@@ -78,7 +88,8 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
    statement date is not in the statement total (the bank says so); the user must mind it.
    Note for model upgrades: Sonnet 5.5 / Opus 5.5 reject forced `tool_choice` (`any`/`tool`);
    switching to them means `auto` + `strict: true` tools.
-4. Deploy to SWA (GitHub Actions), set app settings, add budget alerts.
+4. ~~Deploy to SWA~~ (done 2026-10-16). Still open: budget alert on the resource group, custom
+   domain, optional Application Insights.
 5. Optional learning exercise: rewrite the extract -> validate -> retry loop in `core/extract.py` as a
    LangGraph graph and compare complexity (the plain SDK version is the baseline and works).
 
