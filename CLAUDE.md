@@ -58,8 +58,12 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
 - Checked in the docs (2026-10-14): managed functions support `python:3.11` (also 3.9/3.10),
   HTTP triggers only, 45 s max per API request, available on the Free plan.
 - Deployed (2026-10-16): SWA (Free, West Europe) in the "Rotativa Cloud services" subscription,
-  https://zealous-glacier-09d07b603.4.azurestaticapps.net (random host by design; use a custom
-  domain for a readable URL). Repo github.com/webgio/return-ledger-ai (private), GitHub Actions
+  https://returnledger.site (custom domain, 2026-10-16), default host
+  https://zealous-glacier-09d07b603.4.azurestaticapps.net (random by design, stays active).
+  DNS at Namecheap, which offers no ALIAS record: apex uses a TXT validation record on `@` plus
+  an A record on `@` -> the SWA `stableInboundIP` 20.4.244.223 (single regional host, no global
+  distribution; fine for this app). Never a CNAME on `@`: it shadows the TXT and breaks
+  resolution. Certificate managed by SWA (DigiCert), auto-renewed. No `www` yet. Repo github.com/webgio/return-ledger-ai (private), GitHub Actions
   deploys on push to `main`. Python v2 model runs fine as a managed function (Oryx, 3.11).
   Real import on the live site: correct row, 7.4 s incl. cold start. App settings on the SWA:
   `ANTHROPIC_API_KEY` (separate prod key, same workspace), `AZURE_TABLES_CONNECTION_STRING`.
@@ -88,8 +92,8 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
    statement date is not in the statement total (the bank says so); the user must mind it.
    Note for model upgrades: Sonnet 5.5 / Opus 5.5 reject forced `tool_choice` (`any`/`tool`);
    switching to them means `auto` + `strict: true` tools.
-4. ~~Deploy to SWA~~ (done 2026-10-16). Still open: budget alert on the resource group, custom
-   domain, optional Application Insights.
+4. ~~Deploy to SWA~~ and custom domain (done 2026-10-16). Still open: budget alert on the
+   resource group, optional `www` subdomain, optional Application Insights.
 5. Optional learning exercise: rewrite the extract -> validate -> retry loop in `core/extract.py` as a
    LangGraph graph and compare complexity (the plain SDK version is the baseline and works).
 
