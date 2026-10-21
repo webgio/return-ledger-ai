@@ -32,6 +32,11 @@ def test_numbers_in_text_reads_italian_and_english():
     assert Decimal("4002.89") in n and Decimal("1234.56") in n and Decimal("66.43") in n
 
 
+def test_numbers_in_text_reads_space_and_apostrophe_thousands():
+    n = numbers_in_text("brut 21 372,00 net 21\u00a0477,48 et 1'234.50")
+    assert Decimal("21372.00") in n and Decimal("21477.48") in n and Decimal("1234.50") in n
+
+
 def test_arithmetic_mismatch_is_an_error():
     bad = ExtractedTrade.model_validate({**MPS_SALE, "stated_net_amount": 4100.00})
     assert [e.code for e in check(bad).errors] == ["net_mismatch"]

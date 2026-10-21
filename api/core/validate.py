@@ -21,6 +21,8 @@ CENT = Decimal("0.01")
 ISIN_RE = re.compile(r"^[A-Z]{2}[A-Z0-9]{9}[0-9]$")
 NATIONAL_CODE_RE = re.compile(r"^[A-Z0-9]{6,10}$")  # CUSIP (9), SEDOL (7), ...
 NUMBER_TOKEN_RE = re.compile(r"\d[\d.,]*\d|\d")
+# 21 372,00 / 21'372.00: thousands grouped by a (non-breaking) space or an apostrophe
+GROUPED_NUMBER_RE = re.compile(r"\d{1,3}(?:[ \u00a0\u202f'\u2019]\d{3})+(?:[.,]\d+)?")
 
 
 MAX_NOTES = 3
@@ -96,9 +98,12 @@ class Validation:
 
 def numbers_in_text(text: str) -> set[Decimal]:
     """Every number in the text, read under both Italian (1.234,56) and English (1,234.56)
-    conventions, rounded to cents. A superset on purpose: used only for membership tests."""
+    conventions, rounded to cents, plus space/apostrophe-grouped thousands (21 372,00). A
+    superset on purpose: used only for membership tests."""
     found: set[Decimal] = set()
-    for tok in NUMBER_TOKEN_RE.findall(text):
+    tokens = NUMBER_TOKEN_RE.findall(text)
+    tokens += [re.sub(r"[ \u00a0\u202f'\u2019]", "", m) for m in GROUPED_NUMBER_RE.findall(text)]
+    for tok in tokens:
         candidates = (
             tok.replace(".", "").replace(",", "."),  # Italian
             tok.replace(",", ""),  # English
