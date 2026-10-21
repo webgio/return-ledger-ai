@@ -337,7 +337,7 @@
       <h1>Return Ledger</h1>
       <p>Log contributions, withdrawals and valuation checkpoints; get an approximated time&#8209;weighted and money&#8209;weighted return, computed entirely in this page.</p>
     </div>
-    <span class="badge">Client-side · proof of concept</span>
+    <span class="badge">Client-side · alpha · proof of concept</span>
   </header>
 
   <nav class="ledger-bar" aria-label="Ledgers">
@@ -368,10 +368,11 @@
         <div class="ai-panel" id="ai-panel" hidden>
           <div class="ai-head">
             <b>Add a transaction from a PDF</b>
-            <span class="badge">AI &middot; beta</span>
+            <span class="badge">AI &middot; alpha</span>
             <button type="button" class="small ghost ai-close" id="ai-close" aria-label="Close">&#10005;</button>
           </div>
           <p class="hint">Upload a buy/sell confirmation, a coupon or dividend notice, or a position statement from your bank or broker. An AI model reads it and proposes one row for this ledger; nothing is added until you confirm.</p>
+          <p class="hint"><b>Experimental (alpha):</b> tested mainly on Italian broker documents and a few synthetic English ones, so other formats may be misread or flagged for review. Always check every figure against the original before confirming. This is not financial or tax advice.</p>
           <div class="ai-code-row" id="ai-code-row">
             <input type="password" id="ai-code" placeholder="Access code" aria-label="Access code" autocomplete="off" spellcheck="false">
             <label class="check"><input type="checkbox" id="ai-remember" checked> Remember on this device</label>

@@ -28,7 +28,9 @@ DEFAULT_MODEL = "claude-haiku-5-5"
 
 SYSTEM_PROMPT = """You extract data from a broker/bank notice so it can be entered in a personal \
 portfolio ledger: a trade confirmation (purchase or sale of a security) or an income payment \
-notice (bond coupon, 'stacco cedola'; dividend, 'stacco dividendi'). Documents are usually in Italian.
+notice (bond coupon, 'stacco cedola'; dividend, 'stacco dividendi'). Documents may be in any \
+language, mostly Italian or English; the terms below give the Italian and the common English \
+wording.
 
 Rules:
 - Transcribe figures exactly as printed. Never estimate, infer or compute a figure that is not \
@@ -43,18 +45,27 @@ Decide from the whole document (language, currency, numbers with a clear decimal
 '66,430000' or '1,234.56'), not from one ambiguous value like '1.234'. Always output plain \
 decimals with a dot and no thousands separator (1234.56).
 - `isin` may hold the printed security code when it is not an ISIN (e.g. a US CUSIP): do not add a warning about it.
-- `principal_amount` is the trade value before accrued interest, fees and taxes ('controvalore').
-- `accrued_interest` is the accrued-interest amount ('controvalore rateo interessi'), 0 if none.
-- List every commission/fee line in `fee_items` and every tax line (e.g. 'imposta sostitutiva \
-su rateo interessi', 'imposta sostitutiva su scarto di emissione', bollo) in `tax_items`, \
-one entry per printed line (withholding on a dividend, e.g. 'controvalore rit. fiscale', and \
-'ritenuta su differenziale NAV' are tax lines). Do not merge or total them yourself.
+- `principal_amount` is the trade value before accrued interest, fees and taxes ('controvalore'; \
+'gross amount', 'principal', 'trade value').
+- `accrued_interest` is the accrued-interest amount ('controvalore rateo interessi'; 'accrued \
+interest'), 0 if none.
+- List every commission/fee line in `fee_items`: broker commission, exchange, clearing, \
+regulatory and other service fees ('commissioni', 'spese'; 'commission', 'fees'). List every \
+tax line in `tax_items`: 'imposta sostitutiva su rateo interessi', 'imposta sostitutiva su \
+scarto di emissione', bollo; stamp duty, financial transaction tax (FTT), withholding tax \
+('ritenuta'; 'withholding'). A withholding on a dividend (e.g. 'controvalore rit. fiscale') and \
+'ritenuta su differenziale NAV' are tax lines. One entry per printed line. Do not merge or \
+total them yourself.
 - For each fee or tax line, set `sign` to the '+' or '-' printed next to its amount; null if \
 none is printed. Copy the sign as printed, never guess it.
-- `stated_net_amount` is the final settled amount ('controvalore finale').
-- `trade_date` is the execution date. `settlement_date` is the value date ('valuta') mentioned \
-for the settlement. Use ISO dates (YYYY-MM-DD). For coupons and dividends leave `trade_date` \
-null; the payment's value date is `settlement_date`. A missing trade date is normal (e.g. on \
+- `stated_net_amount` is the final settled amount ('controvalore finale'; 'net amount', \
+'net proceeds', 'total').
+- `trade_date` is the execution date ('data operazione'; 'trade date'). `settlement_date` is the \
+value date ('valuta'; 'settlement date', 'value date') mentioned for the settlement. Use ISO \
+dates (YYYY-MM-DD); when the order of day and month is ambiguous, decide from the document's \
+language and other dates. For coupons and dividends leave `trade_date` null; the payment's \
+value date ('pay date', 'payment date') is `settlement_date`. Ignore other dates such as \
+ex-date, record date or declaration date. A missing trade date is normal (e.g. on \
 order summaries): leave it null without a warning, the ledger only needs the value date.
 - For coupons and dividends, `principal_amount` is the printed 'controvalore' (0 for a bond \
 coupon, whose amount is the 'controvalore rateo interessi').
