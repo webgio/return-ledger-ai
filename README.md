@@ -92,7 +92,7 @@ Codici in `errors`: `net_mismatch`, `figure_not_in_document`, `missing_date`,
 `no_positions`, `bad_model_output`, `extraction_failed`. `multi_fill_detail` = dettaglio dei singoli eseguiti di un ordine
 multieseguito: va importato il riepilogo, altrimenti l'operazione entrerebbe due volte.
 Codici in `warnings`: `invalid_isin`, `quantity_price_mismatch`, `position_value_mismatch`,
-`non_eur_currency`, `no_text_layer`, `model_note`.
+`no_text_layer`, `model_note`.
 
 ## Ospiti e crediti
 

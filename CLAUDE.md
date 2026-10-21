@@ -84,8 +84,9 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
   with FTT, ES dividend with retention, UK sale in GBP, US dividend with withholding, EN statement,
   EN bond buy with accrued interest, DE non-trade). They live in the fixtures folder (outside git).
   Found on the way: the grounding check missed space-grouped thousands ("21 372,00"); fixed in
-  `core/validate.py: numbers_in_text` (space, NBSP, apostrophe). Non-EUR currencies are only a
-  `non_eur_currency` warning: how the ledger should treat them is deferred.
+  `core/validate.py: numbers_in_text` (space, NBSP, apostrophe). Currency is deliberately not
+  handled (2026-10-21): the app shows plain numbers without a symbol, never converts, and the
+  footer asks users to keep one currency per ledger; the `non_eur_currency` warning was removed.
 - NOT verified: real documents from brokers other than MPS (only the synthetic ones above).
 - Frontend integration done (2026-10-10) in `app/index.html` (section "AI import" at the end of
   the script): verified end to end in headless Chrome against `scripts/dev_server.py` with the

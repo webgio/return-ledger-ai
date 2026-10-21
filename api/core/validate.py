@@ -162,11 +162,6 @@ def check(t: ExtractedTrade, pdf_text: str | None = None) -> Validation:
                 "quantity_price_mismatch",
                 "Quantity × price does not match the trade value: please check.",
             ))
-    if t.currency.upper() != "EUR":
-        v.warnings.append(Issue(
-            "non_eur_currency",
-            f"Currency {t.currency}: the ledger does not convert currencies, check the amount.",
-        ))
     v.warnings.extend(model_notes(t.warnings))
 
     # 3. grounding
@@ -225,11 +220,6 @@ def check_statement(s: ExtractedStatement, pdf_text: str | None = None) -> Valid
                 "position_value_mismatch",
                 f"{p.name}: quantity x price does not match the position value {q2(p.value)}.",
             ))
-    if s.currency.upper() != "EUR":
-        v.warnings.append(Issue(
-            "non_eur_currency",
-            f"Currency {s.currency}: the ledger does not convert currencies, check the values.",
-        ))
     v.warnings.extend(model_notes(s.warnings))
 
     # 3. grounding

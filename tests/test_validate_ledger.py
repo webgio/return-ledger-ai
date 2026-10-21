@@ -64,11 +64,10 @@ def test_other_document_is_rejected():
     assert [e.code for e in check(other).errors] == ["not_a_trade"]
 
 
-def test_non_euro_and_bad_isin_warn():
+def test_other_currency_is_not_flagged_but_bad_isin_is():
     t = ExtractedTrade.model_validate({**MPS_SALE, "currency": "USD", "isin": "XX123"})
     w = check(t).warnings
-    assert {i.code for i in w} == {"non_eur_currency", "invalid_isin", "no_text_layer"}
-    assert any("USD" in i.message for i in w)
+    assert {i.code for i in w} == {"invalid_isin", "no_text_layer"}
 
 
 def test_model_warnings_are_passed_through_as_notes():
