@@ -77,7 +77,16 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
 - Number format (2026-10-16): the prompt now asks the model to detect Italian vs English
   separators from the whole document. A synthetic US-style notice (USD, 1,234.56, MM/DD dates)
   was exact on the first attempt (Haiku 5.5); still no real non-MPS documents.
-- NOT verified: brokers other than MPS.
+- International prep (2026-10-21): prompt generalized (any language, Italian + English terms side by
+  side, fee vs tax definitions incl. stamp duty/FTT/withholding, pay date for income, ignore ex/record
+  dates); alpha disclaimer in the page badges and AI panel. Fixture battery now 51/51 on the first
+  attempt (Haiku 5.5): the 43 above plus 8 synthetic notices from fictional brokers (DE buy, FR buy
+  with FTT, ES dividend with retention, UK sale in GBP, US dividend with withholding, EN statement,
+  EN bond buy with accrued interest, DE non-trade). They live in the fixtures folder (outside git).
+  Found on the way: the grounding check missed space-grouped thousands ("21 372,00"); fixed in
+  `core/validate.py: numbers_in_text` (space, NBSP, apostrophe). Non-EUR currencies are only a
+  `non_eur_currency` warning: how the ledger should treat them is deferred.
+- NOT verified: real documents from brokers other than MPS (only the synthetic ones above).
 - Frontend integration done (2026-10-10) in `app/index.html` (section "AI import" at the end of
   the script): verified end to end in headless Chrome against `scripts/dev_server.py` with the
   real model (wrong code, real MPS import -> addRow, mocked needs_review gating, light/dark,
