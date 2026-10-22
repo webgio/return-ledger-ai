@@ -373,6 +373,7 @@
           </div>
           <p class="hint">Upload a buy/sell confirmation, a coupon or dividend notice, or a position statement from your bank or broker. An AI model reads it and proposes one row for this ledger; nothing is added until you confirm.</p>
           <p class="hint"><b>Experimental (alpha):</b> tested mainly on Italian broker documents and a few synthetic English ones, so other formats may be misread or flagged for review. Always check every figure against the original before confirming. This is not financial or tax advice.</p>
+          <p class="hint">No access code? Questions, bugs or a document that doesn't read correctly: write to <a href="mailto:hello@returnledger.site?subject=Return%20Ledger">Giorgio Bozio</a>.</p>
           <div class="ai-code-row" id="ai-code-row">
             <input type="password" id="ai-code" placeholder="Access code" aria-label="Access code" autocomplete="off" spellcheck="false">
             <label class="check"><input type="checkbox" id="ai-remember" checked> Remember on this device</label>
@@ -444,7 +445,7 @@
           <p><b>Fees, tax, and gross vs. net:</b> the Amount field always stays the gross figure &mdash; what actually moved in or out of the account, matching your broker statement. That's what TWR uses, so it keeps measuring market performance on its own, undistorted by what you paid in costs. Fees and tax you log on a Deposit or Withdraw only feed a second, separate figure: <b>XIRR &middot; net</b>, computed on the amount minus fees and tax (what actually reached your pocket, or cost you extra on the way in). The gap between gross and net XIRR is the <b>cost drag</b> tile &mdash; roughly how many percentage points a year fees and tax are costing you. Tax withheld on unrealized gains inside valuation checkpoints isn't captured this way; only tax you actually record against a withdrawal is.</p>
         </details>
 
-        <footer class="note">All data stays in this browser; nothing is uploaded, except a PDF you explicitly send to the AI import. The site counts visits anonymously, without cookies. Amounts carry no currency and are never converted: use the same currency throughout a ledger. Figures are only as accurate as the valuation checkpoints you enter.</footer>
+        <footer class="note">All data stays in this browser; nothing is uploaded, except a PDF you explicitly send to the AI import. The site counts visits anonymously, without cookies. Amounts carry no currency and are never converted: use the same currency throughout a ledger. Figures are only as accurate as the valuation checkpoints you enter. Made by Giorgio Bozio &middot; <a href="mailto:hello@returnledger.site?subject=Return%20Ledger">feedback or questions</a>.</footer>
       </div>
     </section>
   </div>
