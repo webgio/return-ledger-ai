@@ -1,145 +1,161 @@
-# Return Ledger — importazione AI da nota informativa PDF
+# Return Ledger — AI import from PDF trade notices
 
-`POST /api/extract` riceve un PDF (nota di acquisto/vendita, avviso di stacco cedola o
-dividendo, oppure rendiconto periodico dei titoli, di banca o broker) e restituisce una riga
-proposta per il registro. L'utente la conferma nell'app: l'AI propone, non scrive.
+Return Ledger is a free, client-side portfolio performance tracker (TWR and XIRR, gross and net of
+fees and tax): one self-contained page in `app/`, no accounts, data kept in the browser's
+localStorage. This repository also holds an optional AI import feature, described below.
 
-Un rendiconto diventa una riga `valuation`: in anteprima l'utente sceglie se usare il saldo
-totale (registro che segue tutto il deposito) o il controvalore di un solo titolo (registro per
-strumento). Controlli: le posizioni sommano al totale stampato, quantità × prezzo (+ rateo)
-torna con ogni posizione, ogni cifra è nel testo del PDF.
+`POST /api/extract` receives a PDF (a purchase/sale confirmation, a coupon or dividend notice, or a
+periodic securities statement from a bank or broker) and returns a proposed ledger row. The user
+confirms it in the app: the AI proposes, it never writes.
 
-Mappatura: acquisto = `deposit`; vendita, cedola, dividendo = `withdraw` (denaro che esce dal
-portafoglio). `amount` è il lordo; commissioni e imposte nelle loro colonne, con il segno del
-costo per l'investitore: un credito d'imposta (es. imposta sul rateo pagato comprando un BTP)
-è una `tax` negativa. Il modello trascrive il segno stampato accanto a ogni voce (+/-).
+A statement becomes a `valuation` row: in the preview the user chooses between the account total
+(a ledger that tracks the whole deposit) and the value of a single position (a per-instrument
+ledger). Checks: the positions add up to the printed total, quantity × price (+ accrual) matches
+each position, and every figure appears in the PDF text.
 
-## Struttura
+Mapping: purchase = `deposit`; sale, coupon, dividend = `withdraw` (cash leaving the portfolio).
+`amount` is the gross flow; fees and taxes go in their own columns, carrying the sign of the cost
+to the investor: a tax credit (e.g. substitute tax on accrued interest paid when buying a bond) is
+a negative `tax`. The model transcribes the sign printed next to each line (+/-).
 
-    api/core/models.py     schema estratto (il modello trascrive le voci, non fa somme)
-    api/core/extract.py    prompt, schemi dei tool, ciclo estrazione -> validazione -> 1 retry (senza modello)
-    api/core/extract_lc.py unico motore: chiama il modello via LangChain (tool call forzata, PDF come file block)
-    api/core/validate.py   controlli deterministici: aritmetica, coerenza, "il numero è nel PDF?"
-    api/core/ledger.py     estrazione -> riga (amount lordo, fees, tax, data valuta, note)
-    api/core/gate.py       chi chiama (codice ospite; login SWA pronto ma spento) + quote
-    api/core/store.py      MemoryStore (test) / TableStore (Azure Table Storage)
-    api/function_app.py    handler HTTP, sottile; la logica sta in core/ e non dipende da Azure
-    scripts/guests_admin.py  add / list / revoke / enable / quota / reset / rotate ospiti
-    app/staticwebapp.config.json  runtime API (python:3.11), header di sicurezza
+The model only transcribes printed figures. All arithmetic and checks are done in code; if they
+fail, the extraction is retried once with the errors fed back, and the result is `ok` or
+`needs_review`.
 
-## Provarlo in locale
+## Layout
 
-Il modo più rapido (pagina + API sulla stessa origine, store in memoria, niente Azurite):
+    api/core/models.py     extraction schema (the model transcribes lines, it does no arithmetic)
+    api/core/extract.py    prompt, tool schemas, extract -> validate -> retry-once loop (model-free)
+    api/core/extract_lc.py the single engine: calls the model through LangChain (forced tool call,
+                           PDF as a file block)
+    api/core/validate.py   deterministic checks: arithmetic, consistency, "is the figure in the PDF?"
+    api/core/ledger.py     extraction -> row (gross amount, fees, tax, value date, note)
+    api/core/gate.py       who is calling (guest code; SWA login prepared but off) + quotas
+    api/core/store.py      MemoryStore (tests) / TableStore (Azure Table Storage)
+    api/function_app.py    thin HTTP handler; the logic lives in core/ and has no Azure dependency
+    scripts/guests_admin.py  add / list / revoke / enable / quota / reset / rotate guests
+    app/staticwebapp.config.json  API runtime (python:3.11), security headers
 
-    export ANTHROPIC_API_KEY=...   # mai committarla
-    api/.venv/bin/python scripts/dev_server.py          # http://127.0.0.1:8000/, codice "demo"
+## Running it locally
 
-Con il runtime vero delle Functions:
+The quickest way (page and API on the same origin, in-memory store, no Azurite):
+
+    export ANTHROPIC_API_KEY=...   # never commit it
+    api/.venv/bin/python scripts/dev_server.py          # http://127.0.0.1:8000/, code "demo"
+
+With the real Functions runtime:
 
     cd api && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
-    cp local.settings.json.example local.settings.json   # metti ANTHROPIC_API_KEY
-    npx azurite-table &                                  # emulatore Table Storage
+    cp local.settings.json.example local.settings.json   # set ANTHROPIC_API_KEY
+    npx azurite-table &                                  # Table Storage emulator
     func start                                           # Azure Functions Core Tools
     export AZURE_TABLES_CONNECTION_STRING="UseDevelopmentStorage=true"
-    python ../scripts/guests_admin.py add mario --quota 20   # stampa il codice, una volta sola
-    curl -X POST http://localhost:7071/api/extract -H "x-guest-code: <codice>" \
-         -H "Content-Type: application/pdf" --data-binary @nota.pdf
+    python ../scripts/guests_admin.py add mario --quota 20   # prints the code, once
+    curl -X POST http://localhost:7071/api/extract -H "x-guest-code: <code>" \
+         -H "Content-Type: application/pdf" --data-binary @notice.pdf
 
-Test: `pip install pytest && pytest` (dal root). Quelli su Table Storage partono solo se Azurite
-è attivo; quelli sul PDF reale cercano il file in `MPS_PDF` e altrimenti si saltano.
+Tests: `pip install pytest && pytest` (from the repo root). The Table Storage tests only run when
+Azurite is up. The tests on a real PDF use the anonymized MPS notice in `tests/fixtures/`; set
+`MPS_PDF` to use another file.
 
-## Dal frontend
+## From the frontend
 
-In `app/index.html` è già integrato: bottone "Add transaction from PDF" nella card del registro, campo
-codice (salvato in localStorage solo se l'utente lo lascia spuntato, e lo dice), avviso privacy,
-anteprima modificabile della riga con errori in rosso e avvisi in ambra; con `needs_review`
-il bottone "Add to this ledger" resta disattivato finché l'utente non spunta "I checked these
-figures". La riga entra solo con `addRow()` al clic. Se l'API manca (pagina aperta da disco o
-hosting solo statico) il resto della pagina funziona e il pannello lo dice. Un codice rifiutato
-(401) viene dimenticato.
+Already wired into `app/index.html`: an "Add transaction from PDF" button in the ledger card, an
+access-code field (kept in localStorage only if the user leaves the box ticked, and it says so), a
+privacy notice, and an editable preview of the row with errors in red and warnings in amber. With
+`needs_review` the "Add to this ledger" button stays disabled until the user ticks "I checked these
+figures". The row only enters the ledger through `addRow()` on click. If the API is missing (page
+opened from disk or static-only hosting) the rest of the page works and the panel says so. A
+rejected code (401) is forgotten.
 
-Il contratto:
+The contract:
 
     const r = await fetch("/api/extract", {
       method: "POST",
-      headers: { "x-guest-code": codice, "Content-Type": "application/pdf" },
-      body: file,                       // File dall'<input type=file>
+      headers: { "x-guest-code": code, "Content-Type": "application/pdf" },
+      body: file,                       // File from the <input type=file>
     });
     const data = await r.json();
     if (!r.ok) { /* data.error = { code, message } */ }
     const { status, row, errors, warnings, remaining } = data;
-    // status "needs_review": mostra errors/warnings in evidenza e lascia modificare la riga
+    // status "needs_review": show errors/warnings prominently and let the user edit the row
 
-I testi per l'utente sono in inglese (prima lingua della UI). Ogni errore e avviso ha un `code`
-stabile più un `message` inglese: la futura versione italiana traduce nel frontend partendo dal
-codice. Fanno eccezione gli avvisi `model_note`, testo libero del modello (in inglese).
+User-facing strings are in English. Every error and warning carries a stable `code` plus an English
+`message`, so a translated frontend can work from the code. The exception is `model_note` warnings,
+free text from the model (in English; capped at 3 notes of 120 characters).
 
-Risposte di errore: `{"error": {"code", "message"}}`, più `remaining` dove c'è.
+Error responses: `{"error": {"code", "message"}}`, plus `remaining` where relevant.
 
-| HTTP | code | Note |
+| HTTP | code | Notes |
 |---|---|---|
-| 200 | — | `kind` `trade` (con `row`, `details`) o `statement` (con `valuation`: `{date, options: [{label, value, note}]}`, la prima opzione è il saldo totale); `status` `ok` / `needs_review`; `errors`/`warnings` = liste di `{code, message}` |
+| 200 | — | `kind` is `trade` (with `row`, `details`) or `statement` (with `valuation`: `{date, options: [{label, value, note}]}`, the first option is the account total); `status` is `ok` / `needs_review`; `errors`/`warnings` are lists of `{code, message}` |
 | 401 | `code_required`, `invalid_code`, `invalid_identity` | |
-| 413 | `file_too_large`, `too_many_pages` | non consuma quota |
-| 415 | `not_pdf` | non consuma quota |
-| 422 | `pdf_encrypted`, `pdf_unreadable` | non consuma quota |
-| 422 | `unreadable_document`, `not_a_trade`, `multi_fill_detail` | quota consumata (il modello è stato chiamato) |
+| 413 | `file_too_large`, `too_many_pages` | does not use quota |
+| 415 | `not_pdf` | does not use quota |
+| 422 | `pdf_encrypted`, `pdf_unreadable` | does not use quota |
+| 422 | `unreadable_document`, `not_a_trade`, `multi_fill_detail` | quota used (the model was called) |
 | 429 | `too_many_attempts`, `quota_exhausted` | |
-| 502 | `model_unavailable` | quota restituita |
+| 502 | `model_unavailable` | quota refunded |
 | 503 | `ai_disabled`, `daily_cap` | |
 
-Codici in `errors`: `net_mismatch`, `figure_not_in_document`, `missing_date`,
+Codes in `errors`: `net_mismatch`, `figure_not_in_document`, `missing_date`,
 `settlement_before_trade`, `not_a_trade`, `multi_fill_detail`, `statement_total_mismatch`,
-`no_positions`, `bad_model_output`, `extraction_failed`. `multi_fill_detail` = dettaglio dei singoli eseguiti di un ordine
-multieseguito: va importato il riepilogo, altrimenti l'operazione entrerebbe due volte.
-Codici in `warnings`: `invalid_isin`, `quantity_price_mismatch`, `position_value_mismatch`,
+`no_positions`, `bad_model_output`, `extraction_failed`. `multi_fill_detail` is the breakdown of the
+individual fills of a multi-fill order: import the summary note instead, or the trade would enter
+twice. Codes in `warnings`: `invalid_isin`, `quantity_price_mismatch`, `position_value_mismatch`,
 `no_text_layer`, `model_note`.
 
-## Ospiti e crediti
+## Guests and quotas
 
-    # stringa di connessione: dal portachiavi macOS (servizio return-ledger-tables) se non c'è
-    # la variabile; per Azurite: export AZURE_TABLES_CONNECTION_STRING="UseDevelopmentStorage=true"
-    python scripts/guests_admin.py add mario --quota 20   # stampa il codice, una volta sola
-    python scripts/guests_admin.py list                   # consumo del mese per ospite
-    python scripts/guests_admin.py quota mario 50         # nuova quota mensile, vale da subito
-    python scripts/guests_admin.py reset mario            # azzera il consumo di questo mese
-    python scripts/guests_admin.py rotate mario           # nuovo codice, il vecchio non vale più
-    python scripts/guests_admin.py revoke mario           # (enable per riattivare)
+    # connection string: the AZURE_TABLES_CONNECTION_STRING variable, or (macOS) a keychain item
+    # named in scripts/guests_admin.py; for Azurite: export AZURE_TABLES_CONNECTION_STRING="UseDevelopmentStorage=true"
+    python scripts/guests_admin.py add mario --quota 20   # prints the code, once
+    python scripts/guests_admin.py list                   # this month's usage per guest
+    python scripts/guests_admin.py quota mario 50         # new monthly quota, effective immediately
+    python scripts/guests_admin.py reset mario            # zero this month's usage
+    python scripts/guests_admin.py rotate mario           # new code, the old one stops working
+    python scripts/guests_admin.py revoke mario           # (enable to reactivate)
 
-La quota è mensile e si azzera da sola il primo del mese (UTC). Il codice non si può rileggere
-(è salvato solo l'hash): se un ospite lo perde, `revoke` e `add` con un nuovo nome. Oltre alle
-quote individuali c'è il tetto giornaliero globale `GLOBAL_DAILY_CAP`. Il dev server locale non
-usa Table Storage: un solo ospite, `--code` e `--quota`, e i contatori si azzerano al riavvio.
+The quota is monthly and resets by itself on the 1st (UTC). The code cannot be read back (only its
+SHA-256 hash is stored): if a guest loses it, `rotate` or `revoke` and `add` under a new name. On
+top of the per-guest quotas there is a global daily cap, `GLOBAL_DAILY_CAP`. The local dev server
+does not use Table Storage: a single guest (`--code`, `--quota`), and counters reset on restart.
 
-## Impostazioni (app settings della SWA)
+## Settings (SWA app settings)
 
-| Nome | Note |
+| Name | Notes |
 |---|---|
-| LLM_MODEL | `provider:model`, default `anthropic:claude-haiku-5-5`; serve il pacchetto `langchain-<provider>` in `api/requirements.txt`. Il modello deve supportare tool e PDF |
-| ANTHROPIC_API_KEY | chiave del provider di default (workspace dedicato, con tetto di spesa); per un altro provider, la sua variabile |
-| AZURE_TABLES_CONNECTION_STRING | account Storage per le tabelle Guests e Usage |
-| AI_ENABLED | `false` = interruttore di emergenza |
-| GLOBAL_DAILY_CAP | chiamate al giorno in totale (default 200) |
-| MAX_FAILED_PER_HOUR | tentativi con codice errato per IP (default 20) |
-| MODEL_TIMEOUT_S | default 18: 2 tentativi stanno nel timeout di ~45 s delle managed functions |
-| ALLOW_LOGIN / DEFAULT_USER_QUOTA | per il pubblico: abilita il login SWA (default spento) |
+| LLM_MODEL | `provider:model`, default `anthropic:claude-haiku-5-5`; needs the matching `langchain-<provider>` package in `api/requirements.txt`. The model must support tool calling and PDF input |
+| ANTHROPIC_API_KEY | key of the default provider (dedicated workspace with a spend cap); for another provider, its own variable |
+| AZURE_TABLES_CONNECTION_STRING | Storage account for the Guests and Usage tables |
+| AI_ENABLED | `false` = kill switch |
+| GLOBAL_DAILY_CAP | total calls per day (default 200) |
+| MAX_FAILED_PER_HOUR | wrong-code attempts per IP (default 20) |
+| MODEL_TIMEOUT_S | default 18: two attempts fit in the ~45 s limit of managed functions |
+| ALLOW_LOGIN / DEFAULT_USER_QUOTA | for public use: enables SWA login (off by default) |
 
-## Cosa è verificato e cosa no
+The deploy workflow injects the Cloudflare Web Analytics beacon from the `CF_BEACON_TOKEN` GitHub
+secret; without it the page ships without analytics.
 
-Verificato: logica di estrazione/validazione sul PDF MPS reale (riproduce la riga già
-inserita a mano), quote e ospiti anche in parallelo su Azurite, handler HTTP, motore LangChain con modello finto, chiamata vera al modello sul PDF MPS (Haiku 5.5 e 4.5:
-tutto corretto al primo tentativo, 2,5–4,8 s, nessun avviso).
-Batteria di prove su documenti veri: `python scripts/eval_fixtures.py <cartella>` (PDF +
-`expected.json`, fuori da git; la mia cartella locale ha 43 documenti MPS:
-acquisti, vendite, BTP con rateo, cedole, dividendi, multieseguito, rendiconti, informative).
-Un PDF MPS anonimizzato (`tests/fixtures/`) è usato dai test; gli originali restano fuori da git.
-Prova manuale: `python scripts/try_extract.py nota.pdf [--model provider:model]` con `ANTHROPIC_API_KEY`
-nell'ambiente (in locale, per esempio dal portachiavi macOS).
-Non verificato: altri documenti oltre al PDF MPS, il deploy su SWA e la versione di Python
-supportata dalle managed functions in questo momento.
+## What is verified and what is not
+
+Verified: extraction and validation on a real MPS notice, quotas and guests (including concurrency
+on Azurite), the HTTP handler, the LangChain engine with a fake chat model, real model calls
+(Haiku 5.5: correct on the first attempt, 2.5–5 s, no warnings) and a deploy on Azure Static Web
+Apps with a managed Python function.
+
+A battery of real documents can be run with `python scripts/eval_fixtures.py <folder>` (PDFs plus
+an `expected.json`, kept outside git). On the author's private set of 43 MPS documents (purchases,
+sales, a BTP with accrued interest, coupons, dividends, multi-fill orders, statements, contract
+terms) plus 8 synthetic notices from fictional brokers, the result was 51/51 on the first attempt.
+Manual check: `python scripts/try_extract.py notice.pdf [--model provider:model]` with the
+provider key in the environment.
+
+Not verified: real documents from brokers other than MPS (only synthetic ones), and providers other
+than Anthropic.
 
 ## Privacy
 
-Il PDF contiene nomi, indirizzo e numeri di conto e viene inviato al fornitore del modello.
-Non viene salvato né loggato; le tabelle contengono solo hash dei codici e contatori.
-Va dichiarato nell'informativa prima di aprire al pubblico.
+The PDF contains names, address and account numbers and is sent to the model provider. It is not
+stored or logged; the tables only hold code hashes and counters. The alpha disclaimer and the
+privacy notice in the page must stay in place when opening to the public.

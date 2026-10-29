@@ -131,7 +131,7 @@ Italian and English; Azure is the chosen cloud (AWS was considered and set aside
 - Code and comments in English. User-facing strings in English for the first version (demos with
   English-speaking users); an Italian version comes later. Every API error/warning carries a stable
   `code` plus an English `message`, so the frontend can translate from the code without backend
-  changes (`model_note` warnings are free text from the model). The README stays in Italian (it is
+  changes (`model_note` warnings are free text from the model). The README is in English (it was in Italian
   for the owner). Money with `Decimal`, never float, except at the JSON boundary. Don't add
   dependencies without need.
 - Workload identity federation was considered instead of an API key and deferred: SWA managed
