@@ -17,7 +17,8 @@ costo per l'investitore: un credito d'imposta (es. imposta sul rateo pagato comp
 ## Struttura
 
     api/core/models.py     schema estratto (il modello trascrive le voci, non fa somme)
-    api/core/extract.py    PDF -> chiamata al modello (tool call forzata) -> validazione -> 1 retry
+    api/core/extract.py    prompt, schemi dei tool, ciclo estrazione -> validazione -> 1 retry (senza modello)
+    api/core/extract_lc.py unico motore: chiama il modello via LangChain (tool call forzata, PDF come file block)
     api/core/validate.py   controlli deterministici: aritmetica, coerenza, "il numero è nel PDF?"
     api/core/ledger.py     estrazione -> riga (amount lordo, fees, tax, data valuta, note)
     api/core/gate.py       chi chiama (codice ospite; login SWA pronto ma spento) + quote
@@ -30,7 +31,7 @@ costo per l'investitore: un credito d'imposta (es. imposta sul rateo pagato comp
 
 Il modo più rapido (pagina + API sulla stessa origine, store in memoria, niente Azurite):
 
-    export ANTHROPIC_API_KEY=$(security find-generic-password -s anthropic-return-ledger -w)
+    export ANTHROPIC_API_KEY=...   # mai committarla
     api/.venv/bin/python scripts/dev_server.py          # http://127.0.0.1:8000/, codice "demo"
 
 Con il runtime vero delle Functions:
@@ -114,8 +115,8 @@ usa Table Storage: un solo ospite, `--code` e `--quota`, e i contatori si azzera
 
 | Nome | Note |
 |---|---|
-| ANTHROPIC_API_KEY | chiave di un workspace dedicato, con tetto di spesa |
-| ANTHROPIC_MODEL | default claude-haiku-5-5; claude-haiku-4-5-20251001 è stato provato e funziona anch'esso |
+| LLM_MODEL | `provider:model`, default `anthropic:claude-haiku-5-5`; serve il pacchetto `langchain-<provider>` in `api/requirements.txt`. Il modello deve supportare tool e PDF |
+| ANTHROPIC_API_KEY | chiave del provider di default (workspace dedicato, con tetto di spesa); per un altro provider, la sua variabile |
 | AZURE_TABLES_CONNECTION_STRING | account Storage per le tabelle Guests e Usage |
 | AI_ENABLED | `false` = interruttore di emergenza |
 | GLOBAL_DAILY_CAP | chiamate al giorno in totale (default 200) |
@@ -126,14 +127,14 @@ usa Table Storage: un solo ospite, `--code` e `--quota`, e i contatori si azzera
 ## Cosa è verificato e cosa no
 
 Verificato: logica di estrazione/validazione sul PDF MPS reale (riproduce la riga già
-inserita a mano), quote e ospiti anche in parallelo su Azurite, handler HTTP, forma della
-richiesta che l'SDK Anthropic invia, chiamata vera al modello sul PDF MPS (Haiku 5.5 e 4.5:
+inserita a mano), quote e ospiti anche in parallelo su Azurite, handler HTTP, motore LangChain con modello finto, chiamata vera al modello sul PDF MPS (Haiku 5.5 e 4.5:
 tutto corretto al primo tentativo, 2,5–4,8 s, nessun avviso).
 Batteria di prove su documenti veri: `python scripts/eval_fixtures.py <cartella>` (PDF +
-`expected.json`, fuori da git; la mia è `~/Documents/return-ledger-fixtures`, 43 documenti MPS:
+`expected.json`, fuori da git; la mia cartella locale ha 43 documenti MPS:
 acquisti, vendite, BTP con rateo, cedole, dividendi, multieseguito, rendiconti, informative).
-Prova manuale: `python scripts/try_extract.py nota.pdf [--model ...]` con `ANTHROPIC_API_KEY`
-nell'ambiente (in locale: portachiavi macOS, `security find-generic-password -s anthropic-return-ledger -w`).
+Un PDF MPS anonimizzato (`tests/fixtures/`) è usato dai test; gli originali restano fuori da git.
+Prova manuale: `python scripts/try_extract.py nota.pdf [--model provider:model]` con `ANTHROPIC_API_KEY`
+nell'ambiente (in locale, per esempio dal portachiavi macOS).
 Non verificato: altri documenti oltre al PDF MPS, il deploy su SWA e la versione di Python
 supportata dalle managed functions in questo momento.
 

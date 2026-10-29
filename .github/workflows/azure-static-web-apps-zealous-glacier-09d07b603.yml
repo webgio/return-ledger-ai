@@ -19,6 +19,24 @@ jobs:
         with:
           submodules: true
           lfs: false
+      - name: Inject analytics beacon
+        # Cookieless Cloudflare Web Analytics; the token lives in a repository secret, not in the code.
+        # Without the secret (forks, local runs) the page ships without analytics.
+        env:
+          CF_BEACON_TOKEN: ${{ secrets.CF_BEACON_TOKEN }}
+        run: |
+          if [ -n "$CF_BEACON_TOKEN" ]; then
+            tag="<script defer src=\"https://static.cloudflareinsights.com/beacon.min.js\" data-cf-beacon='{\"token\": \"$CF_BEACON_TOKEN\"}'></script>"
+            python3 - "$tag" <<'PY'
+          import sys
+          p = "app/index.html"
+          s = open(p, encoding="utf-8").read()
+          marker = "<!-- ANALYTICS:"
+          i = s.index(marker)
+          j = s.index("-->", i) + 3
+          open(p, "w", encoding="utf-8").write(s[:j] + "\n" + sys.argv[1] + s[j:])
+          PY
+          fi
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1

@@ -1,8 +1,8 @@
 # Return Ledger — project context
 
 Read this first. It summarizes decisions made in an earlier design conversation so work can continue
-from here without re-explaining. The owner (Giorgio) is a .NET/Azure/data-engineering developer in
-Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was considered and set aside).
+from here without re-explaining. The owner is a .NET/Azure/data-engineering developer, comfortable in
+Italian and English; Azure is the chosen cloud (AWS was considered and set aside).
 
 ## What this is
 - **Return Ledger**: free, client-side portfolio performance tracker (TWR + XIRR, gross and net of
@@ -46,10 +46,10 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
 
 ## State
 - Done and tested: extraction/validation, ledger mapping, gate/quotas (incl. Azurite concurrency test),
-  HTTP handler with a fake model client, SDK request shape. `pytest` from the repo root.
+  HTTP handler and extraction with a fake LangChain chat model. `pytest` from the repo root.
 - Real model call verified on the MPS PDF (2026-10-10): Haiku 5.5 (default) and Haiku 4.5 both
   exact on the first attempt, no warnings, 2.5-4.8 s. Manual runner: `scripts/try_extract.py`.
-  Local key lives in the macOS keychain (service `anthropic-return-ledger`); spend cap is set on
+  The local key lives in the macOS keychain; spend cap is set on
   the dedicated Anthropic workspace (limits are per workspace, not per key).
 - Fixture eval (2026-10-14, Haiku 5.5): 42/42 MPS documents correct on the first attempt
   (buys, sales, BTP buy with tax credit, coupons, dividends, multi-fill summary and detail,
@@ -59,21 +59,19 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
   sometimes sends "" for a missing date -> blank strings are treated as null in `models.py`.
 - Checked in the docs (2026-10-14): managed functions support `python:3.11` (also 3.9/3.10),
   HTTP triggers only, 45 s max per API request, available on the Free plan.
-- Deployed (2026-10-16): SWA (Free, West Europe) in the "Rotativa Cloud services" subscription,
-  https://returnledger.site (custom domain, 2026-10-16), default host
-  https://zealous-glacier-09d07b603.4.azurestaticapps.net (random by design, stays active).
-  DNS at Namecheap, which offers no ALIAS record: apex uses a TXT validation record on `@` plus
-  an A record on `@` -> the SWA `stableInboundIP` 20.4.244.223 (single regional host, no global
-  distribution; fine for this app). Never a CNAME on `@`: it shadows the TXT and breaks
-  resolution. Certificate managed by SWA (DigiCert), auto-renewed. No `www` yet. Repo github.com/webgio/return-ledger-ai (private), GitHub Actions
-  deploys on push to `main`. Python v2 model runs fine as a managed function (Oryx, 3.11).
-  Real import on the live site: correct row, 7.4 s incl. cold start. App settings on the SWA:
-  `ANTHROPIC_API_KEY` (separate prod key, same workspace), `AZURE_TABLES_CONNECTION_STRING`.
-  Locally, keychain items: `anthropic-return-ledger` (dev key), `return-ledger-tables` (prod
-  tables connection string), `return-ledger-guest-giorgio` (owner's guest code).
+- Deployed (2026-10-16): SWA (Free, West Europe) with a custom apex domain; the default
+  `*.azurestaticapps.net` host is random by design and stays active. DNS provider without ALIAS
+  records: the apex uses a TXT validation record on `@` plus an A record on `@` -> the SWA
+  `stableInboundIP` (single regional host, no global distribution; fine for this app). Never a CNAME
+  on `@`: it shadows the TXT and breaks resolution. Certificate managed by SWA (DigiCert),
+  auto-renewed. No `www` yet. GitHub Actions deploys on push to `main`. Python v2 model runs fine as
+  a managed function (Oryx, 3.11). Real import on the live site: correct row, 7.4 s incl. cold start.
+  App settings on the SWA: `ANTHROPIC_API_KEY` (separate prod key, same workspace),
+  `AZURE_TABLES_CONNECTION_STRING`. Locally, secrets live in the macOS keychain (dev key, prod
+  tables connection string, the owner's guest code).
   Keychain tip: `security ... -w` prompts cap input at 128 chars; use `-w "$(pbpaste)"` instead.
-- The Azure CLI here only sees the Pay-As-You-Go tenant; the Rotativa subscription needs
-  `az login --tenant ...` before any `az` command against it.
+- The Azure CLI may only see the wrong tenant/subscription by default: `az login --tenant ...`
+  before any `az` command against the production subscription.
 - Number format (2026-10-16): the prompt now asks the model to detect Italian vs English
   separators from the whole document. A synthetic US-style notice (USD, 1,234.56, MM/DD dates)
   was exact on the first attempt (Haiku 5.5); still no real non-MPS documents.
@@ -87,6 +85,23 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
   `core/validate.py: numbers_in_text` (space, NBSP, apostrophe). Currency is deliberately not
   handled (2026-10-21): the app shows plain numbers without a symbol, never converts, and the
   footer asks users to keep one currency per ledger; the `non_eur_currency` warning was removed.
+- LangChain only (2026-10-29): the direct Anthropic SDK path is gone. `api/core/extract_lc.py` is
+  the single engine, provider-agnostic: no vendor import, the model is a `provider:model` string
+  (`LLM_MODEL`, default `anthropic:claude-haiku-5-5`, or `--model` on the scripts) resolved by
+  `init_chat_model`; neutral tool schemas, `bind_tools(..., tool_choice="any")`, PDF as a standard
+  file block. `core/extract.py` keeps the prompt, tool definitions and the `run_extraction` retry
+  loop. `function_app.py` uses it (`get_llm`). Dependencies: `langchain` + `langchain-anthropic` in
+  `api/requirements.txt` (`anthropic` is no longer a direct dependency; `ANTHROPIC_API_KEY` is still
+  the provider key). Previous eval with this engine: 51/51 (Haiku 5.5, slowest 4.3 s); real call on
+  the anonymized MPS PDF re-checked 2026-10-29. NOT verified: the deploy of this build on SWA (bigger
+  package, cold start vs the 45 s limit); other providers (no keys; they need tools + PDF input).
+  Note: the `ANTHROPIC_MODEL` app setting is replaced by `LLM_MODEL`; update it on the SWA before deploying.
+- Analytics (2026-10-29): the Cloudflare Web Analytics token is not in the repo. `app/index.html` has an
+  `<!-- ANALYTICS: ... -->` marker; the deploy workflow injects the beacon after it when the GitHub
+  secret `CF_BEACON_TOKEN` is set (no secret = no analytics, e.g. in forks).
+- Test fixture (2026-10-29): `tests/fixtures/mps_btp_sale_anonymized.pdf` is the MPS BTP sale notice
+  with names, address, deposit/account/order numbers and metadata replaced (PyMuPDF redaction); the
+  only PDF allowed in git. Originals stay outside the repo.
 - NOT verified: real documents from brokers other than MPS (only the synthetic ones above).
 - Frontend integration done (2026-10-10) in `app/index.html` (section "AI import" at the end of
   the script): verified end to end in headless Chrome against `scripts/dev_server.py` with the
@@ -98,7 +113,7 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
 1. ~~Run with a real key against the MPS PDF~~ (done, see State).
 2. ~~Frontend in `app/index.html`~~ (done, see State). Keep the page self-contained and usable
    without the AI feature.
-3. Real notices as fixtures: `scripts/eval_fixtures.py ~/Documents/return-ledger-fixtures`
+3. Real notices as fixtures: `scripts/eval_fixtures.py <fixtures folder>`
    (43 MPS documents + expected.json, outside git). Still wanted: other brokers.
 3b. ~~Position statements -> `valuation` row~~ (done 2026-10-14): second tool `record_statement`
    (model picks the tool, `tool_choice: any`), `check_statement`, `to_valuations`; the UI lets the
@@ -110,7 +125,7 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
 4. ~~Deploy to SWA~~ and custom domain (done 2026-10-16). Still open: budget alert on the
    resource group, optional `www` subdomain, optional Application Insights.
 5. Optional learning exercise: rewrite the extract -> validate -> retry loop in `core/extract.py` as a
-   LangGraph graph and compare complexity (the plain SDK version is the baseline and works).
+   LangGraph graph and compare complexity (the plain loop in `run_extraction` is the baseline and works).
 
 ## Conventions
 - Code and comments in English. User-facing strings in English for the first version (demos with
@@ -122,4 +137,4 @@ Italy, comfortable in Italian and English; Azure is the chosen cloud (AWS was co
 - Workload identity federation was considered instead of an API key and deferred: SWA managed
   functions (probably) lack managed identity; revisit if moving to a linked Function App or going
   public.
-- Tests that need the real PDF read it from `MPS_PDF` and skip otherwise; never commit PDFs.
+- Tests that need the real PDF read it from `MPS_PDF` and skip otherwise; never commit real PDFs (only the anonymized one in tests/fixtures).
