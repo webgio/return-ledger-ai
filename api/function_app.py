@@ -16,7 +16,7 @@ from typing import Any
 import azure.functions as func
 
 from core import gate
-from core.extract import extract, make_client
+from core.extract_lc import extract, make_chat_model
 from core.ledger import to_row, to_valuations
 from core.store import MemoryStore, TableStore
 from core.validate import Issue, compute
@@ -27,7 +27,7 @@ MAX_BYTES = int(os.environ.get("MAX_PDF_BYTES", str(5 * 1024 * 1024)))
 MAX_PAGES = int(os.environ.get("MAX_PDF_PAGES", "6"))
 
 _store: Any = None
-_client: Any = None
+_llm: Any = None
 
 
 def get_store() -> Any:
@@ -38,11 +38,11 @@ def get_store() -> Any:
     return _store
 
 
-def get_client() -> Any:
-    global _client
-    if _client is None:
-        _client = make_client()
-    return _client
+def get_llm() -> Any:
+    global _llm
+    if _llm is None:
+        _llm = make_chat_model()
+    return _llm
 
 
 def error(status: int, code: str, message: str, **extra: Any) -> func.HttpResponse:
@@ -100,7 +100,7 @@ def extract_trade(req: func.HttpRequest) -> func.HttpResponse:
         return error(e.status, e.code, e.message)
 
     try:
-        outcome = extract(body, get_client())
+        outcome = extract(body, get_llm())
     except Exception:
         # Never log the document or the model output; only who and what kind of failure.
         logging.exception("model call failed for %s", subject.label)

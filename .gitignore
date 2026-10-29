@@ -2,6 +2,8 @@ local.settings.json
 __pycache__/
 .pytest_cache/
 *.pdf
+!tests/fixtures/*.pdf
+run*.csv
 .venv/
 .DS_Store
 # Azurite local emulator data

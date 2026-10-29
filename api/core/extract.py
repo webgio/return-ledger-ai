@@ -1,21 +1,18 @@
-"""PDF trade notice -> validated ExtractedTrade.
+"""Provider-independent core of the PDF extraction: prompt, tool definitions, retry loop.
 
-`extract()` is a pure function of (pdf bytes, model client): no HTTP, no Azure, no quota.
-That keeps the cloud choice open: an Azure Functions trigger, a Lambda handler or a CLI
-can all call it unchanged.
+No HTTP, no Azure, no quota, no model client: `run_extraction` takes a callable that talks to
+the model (`extract_lc.py` provides it through LangChain). That keeps the cloud and the model
+provider swappable.
 
 Flow: call the model with a forced tool call -> validate deterministically -> if the checks
-fail, retry once telling the model what was wrong. (This extract -> validate -> retry loop is
-exactly the shape one would turn into a LangGraph graph as a learning exercise.)
+fail, retry once telling the model what was wrong.
 """
 from __future__ import annotations
 
-import base64
 import io
 import json
-import os
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
 from pydantic import ValidationError
 
@@ -24,7 +21,6 @@ from .validate import Issue, Validation, check, check_statement
 
 TOOL_NAME = "record_trade"
 STATEMENT_TOOL = "record_statement"
-DEFAULT_MODEL = "claude-haiku-5-5"
 
 SYSTEM_PROMPT = """You extract data from a broker/bank notice so it can be entered in a personal \
 portfolio ledger: a trade confirmation (purchase or sale of a security) or an income payment \
@@ -110,39 +106,6 @@ def pdf_text(pdf_bytes: bytes) -> str:
     return "\n".join((p.extract_text() or "") for p in reader.pages)
 
 
-def make_client() -> Any:
-    import anthropic
-
-    # Managed functions on Static Web Apps time out around 45 s: 2 attempts x 18 s fits.
-    timeout = float(os.environ.get("MODEL_TIMEOUT_S", "18"))
-    return anthropic.Anthropic(timeout=timeout, max_retries=0)
-
-
-def _build_messages(pdf_bytes: bytes, feedback: str | None) -> list[dict[str, Any]]:
-    instruction = "Extract the trade from this document."
-    if feedback:
-        instruction += (
-            "\n\nA previous attempt failed these automatic checks:\n"
-            f"{feedback}\nRe-read the document carefully and correct the extraction."
-        )
-    return [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "document",
-                    "source": {
-                        "type": "base64",
-                        "media_type": "application/pdf",
-                        "data": base64.b64encode(pdf_bytes).decode("ascii"),
-                    },
-                },
-                {"type": "text", "text": instruction},
-            ],
-        }
-    ]
-
-
 TOOLS = [
     {
         "name": TOOL_NAME,
@@ -158,28 +121,12 @@ TOOLS = [
 ]
 
 
-def _call_model(client: Any, model: str, messages: list[dict[str, Any]]) -> tuple[str, dict[str, Any]]:
-    response = client.messages.create(
-        model=model,
-        max_tokens=4000,  # a statement lists every position
-        system=SYSTEM_PROMPT,
-        tools=TOOLS,
-        tool_choice={"type": "any"},
-        messages=messages,
-    )
-    for block in response.content:
-        if getattr(block, "type", None) == "tool_use" and block.name in (TOOL_NAME, STATEMENT_TOOL):
-            return block.name, dict(block.input)
-    raise ValueError("The model did not call a tool.")
+ModelCall = Callable[[bytes, "str | None"], "tuple[str, dict[str, Any]]"]
+"""(pdf bytes, feedback from the previous attempt) -> (tool name, raw tool input)."""
 
 
-def extract(
-    pdf_bytes: bytes,
-    client: Any,
-    model: str | None = None,
-    max_attempts: int = 2,
-) -> Outcome:
-    model = model or os.environ.get("ANTHROPIC_MODEL", DEFAULT_MODEL)
+def run_extraction(pdf_bytes: bytes, call: ModelCall, max_attempts: int = 2) -> Outcome:
+    """The extract -> validate -> retry loop, independent of how the model is called."""
     try:
         text = pdf_text(pdf_bytes)
     except Exception:
@@ -191,7 +138,7 @@ def extract(
                    0, text_ok)
     for attempt in range(1, max_attempts + 1):
         try:
-            tool, raw = _call_model(client, model, _build_messages(pdf_bytes, feedback))
+            tool, raw = call(pdf_bytes, feedback)
             if tool == STATEMENT_TOOL:
                 statement = ExtractedStatement.model_validate(raw)
             else:

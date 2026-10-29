@@ -1,7 +1,7 @@
 """Run the real extraction on a local PDF (manual check, not a test).
 
     export ANTHROPIC_API_KEY=...        # never commit it
-    python scripts/try_extract.py tests/MPS_PDF.pdf [--model claude-...]
+    python scripts/try_extract.py tests/MPS_PDF.pdf [--model provider:model]
 
 Prints the extracted trade, the checks and the proposed ledger row. Local use only: the
 output contains data from the document.
@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "api"))
 
-from core.extract import extract, make_client  # noqa: E402
+from core.extract_lc import extract, make_chat_model  # noqa: E402
 from core.ledger import to_row, to_valuations  # noqa: E402
 
 
@@ -27,7 +27,7 @@ def main() -> int:
     args = p.parse_args()
 
     started = time.monotonic()
-    out = extract(args.pdf.read_bytes(), make_client(), model=args.model)
+    out = extract(args.pdf.read_bytes(), make_chat_model(args.model))
     elapsed = time.monotonic() - started
 
     print(f"attempts: {out.attempts}  pdf text: {out.pdf_text_available}  {elapsed:.1f}s")
